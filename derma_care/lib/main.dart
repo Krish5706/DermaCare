@@ -6,12 +6,12 @@ void main() {
 }
 
 class MyApp extends StatelessWidget {
-  const MyApp({Key? key}) : super(key: key);
+  const MyApp({super.key});
 
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'SkinScan',
+      title: 'DermaCare',
       theme: ThemeData(primarySwatch: Colors.blue, fontFamily: 'Roboto'),
       home: const HomePage(),
       debugShowCheckedModeBanner: false,
@@ -20,7 +20,7 @@ class MyApp extends StatelessWidget {
 }
 
 class HomePage extends StatefulWidget {
-  const HomePage({Key? key}) : super(key: key);
+  const HomePage({super.key});
 
   @override
   _HomePageState createState() => _HomePageState();
@@ -55,7 +55,7 @@ class _HomePageState extends State<HomePage> {
             ),
             SizedBox(width: 8),
             Text(
-              'SkinScan',
+              'DermaCare',
               style: TextStyle(
                 color: Colors.black,
                 fontSize: 20,
@@ -83,7 +83,7 @@ class _HomePageState extends State<HomePage> {
           children: [
             SizedBox(height: 20),
             Text(
-              'Welcome to SkinScan',
+              'Welcome to DermaCare',
               style: TextStyle(
                 fontSize: 28,
                 fontWeight: FontWeight.bold,
@@ -92,7 +92,7 @@ class _HomePageState extends State<HomePage> {
             ),
             SizedBox(height: 8),
             Text(
-              'Your personal skin disease detection\napp.',
+              'Your personal skin disease detection app.',
               style: TextStyle(
                 fontSize: 16,
                 color: Colors.grey[600],
@@ -156,7 +156,7 @@ class _HomePageState extends State<HomePage> {
                   ),
                   SizedBox(height: 40),
                   // Give Feedback Button
-                  Container(
+                  SizedBox(
                     width: double.infinity,
                     height: 56,
                     child: ElevatedButton(
@@ -190,7 +190,7 @@ class _HomePageState extends State<HomePage> {
                   ),
                   SizedBox(height: 20),
                   // Settings Button
-                  Container(
+                  SizedBox(
                     width: double.infinity,
                     height: 56,
                     child: OutlinedButton(
