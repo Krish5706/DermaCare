@@ -1,6 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
-import 'theme_provider.dart';
 
 class SettingsPage extends StatefulWidget {
   const SettingsPage({Key? key}) : super(key: key);
@@ -10,23 +8,28 @@ class SettingsPage extends StatefulWidget {
 }
 
 class _SettingsPageState extends State<SettingsPage> {
+  bool _notificationsEnabled = true;
+  bool _darkModeEnabled = false;
+  bool _autoSaveEnabled = true;
+  bool _offlineModeEnabled = false;
+  String _selectedLanguage = 'English';
+  String _selectedTheme = 'Light';
+
   @override
   Widget build(BuildContext context) {
-    final themeProvider = Provider.of<ThemeProvider>(context);
-    
     return Scaffold(
-      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+      backgroundColor: Colors.white,
       appBar: AppBar(
-        backgroundColor: Theme.of(context).appBarTheme.backgroundColor,
+        backgroundColor: Colors.white,
         elevation: 0,
         leading: IconButton(
-          icon: Icon(Icons.arrow_back, color: Theme.of(context).appBarTheme.foregroundColor),
+          icon: Icon(Icons.arrow_back, color: Colors.black),
           onPressed: () => Navigator.pop(context),
         ),
         title: Text(
           'Settings',
           style: TextStyle(
-            color: Theme.of(context).appBarTheme.foregroundColor,
+            color: Colors.black,
             fontSize: 20,
             fontWeight: FontWeight.w600,
           ),
@@ -41,58 +44,67 @@ class _SettingsPageState extends State<SettingsPage> {
             _buildSettingCard(
               icon: Icons.language,
               title: 'Language',
-              subtitle: themeProvider.selectedLanguage,
-              onTap: () => _showLanguageDialog(themeProvider),
+              subtitle: _selectedLanguage,
+              onTap: () => _showLanguageDialog(),
             ),
             _buildSettingCard(
               icon: Icons.palette,
               title: 'Theme',
-              subtitle: themeProvider.isDarkMode ? 'Dark' : 'Light',
-              onTap: () => _showThemeDialog(themeProvider),
+              subtitle: _selectedTheme,
+              onTap: () => _showThemeDialog(),
             ),
-            
+
             SizedBox(height: 24),
             _buildSectionHeader('Notifications'),
             _buildSwitchCard(
               icon: Icons.notifications,
               title: 'Push Notifications',
               subtitle: 'Receive scan reminders and updates',
-              value: themeProvider.notificationsEnabled,
+              value: _notificationsEnabled,
               onChanged: (value) {
-                themeProvider.setNotifications(value);
+                setState(() {
+                  _notificationsEnabled = value;
+                });
               },
             ),
-            
+
             SizedBox(height: 24),
             _buildSectionHeader('App Preferences'),
             _buildSwitchCard(
               icon: Icons.dark_mode,
               title: 'Dark Mode',
               subtitle: 'Switch to dark theme',
-              value: themeProvider.isDarkMode,
+              value: _darkModeEnabled,
               onChanged: (value) {
-                themeProvider.setDarkMode(value);
+                setState(() {
+                  _darkModeEnabled = value;
+                  _selectedTheme = value ? 'Dark' : 'Light';
+                });
               },
             ),
             _buildSwitchCard(
               icon: Icons.save,
               title: 'Auto Save Scans',
               subtitle: 'Automatically save scan results',
-              value: themeProvider.autoSaveEnabled,
+              value: _autoSaveEnabled,
               onChanged: (value) {
-                themeProvider.setAutoSave(value);
+                setState(() {
+                  _autoSaveEnabled = value;
+                });
               },
             ),
             _buildSwitchCard(
               icon: Icons.cloud_off,
               title: 'Offline Mode',
               subtitle: 'Use app without internet connection',
-              value: themeProvider.offlineModeEnabled,
+              value: _offlineModeEnabled,
               onChanged: (value) {
-                themeProvider.setOfflineMode(value);
+                setState(() {
+                  _offlineModeEnabled = value;
+                });
               },
             ),
-            
+
             SizedBox(height: 24),
             _buildSectionHeader('Data & Privacy'),
             _buildSettingCard(
@@ -107,7 +119,10 @@ class _SettingsPageState extends State<SettingsPage> {
               subtitle: 'Read our privacy policy',
               onTap: () {
                 // Navigate to privacy policy
-                _showInfoDialog('Privacy Policy', 'Your privacy is important to us. This app processes skin images locally and does not share personal data without consent.');
+                _showInfoDialog(
+                  'Privacy Policy',
+                  'Your privacy is important to us. This app processes skin images locally and does not share personal data without consent.',
+                );
               },
             ),
             _buildSettingCard(
@@ -116,10 +131,13 @@ class _SettingsPageState extends State<SettingsPage> {
               subtitle: 'View terms and conditions',
               onTap: () {
                 // Navigate to terms of service
-                _showInfoDialog('Terms of Service', 'By using this app, you agree to our terms and conditions. This app is for educational purposes and should not replace professional medical advice.');
+                _showInfoDialog(
+                  'Terms of Service',
+                  'By using this app, you agree to our terms and conditions. This app is for educational purposes and should not replace professional medical advice.',
+                );
               },
             ),
-            
+
             SizedBox(height: 24),
             _buildSectionHeader('Support'),
             _buildSettingCard(
@@ -127,7 +145,10 @@ class _SettingsPageState extends State<SettingsPage> {
               title: 'Help & FAQ',
               subtitle: 'Get help and find answers',
               onTap: () {
-                _showInfoDialog('Help & FAQ', 'For support, please contact us at support@skinscan.com or visit our FAQ section on the website.');
+                _showInfoDialog(
+                  'Help & FAQ',
+                  'For support, please contact us at support@skinscan.com or visit our FAQ section on the website.',
+                );
               },
             ),
             _buildSettingCard(
@@ -143,10 +164,13 @@ class _SettingsPageState extends State<SettingsPage> {
               title: 'About',
               subtitle: 'App version and information',
               onTap: () {
-                _showInfoDialog('About SkinScan', 'SkinScan v1.0.0\n\nA personal skin disease detection app powered by AI technology.\n\nDeveloped with care for your health and privacy.');
+                _showInfoDialog(
+                  'About SkinScan',
+                  'SkinScan v1.0.0\n\nA personal skin disease detection app powered by AI technology.\n\nDeveloped with care for your health and privacy.',
+                );
               },
             ),
-            
+
             SizedBox(height: 40),
           ],
         ),
@@ -176,7 +200,7 @@ class _SettingsPageState extends State<SettingsPage> {
   }) {
     return Card(
       elevation: 0,
-      color: Theme.of(context).cardTheme.color,
+      color: Colors.grey[50],
       margin: EdgeInsets.only(bottom: 8),
       child: ListTile(
         leading: Container(
@@ -189,18 +213,11 @@ class _SettingsPageState extends State<SettingsPage> {
         ),
         title: Text(
           title,
-          style: TextStyle(
-            fontSize: 16,
-            fontWeight: FontWeight.w600,
-            color: Theme.of(context).textTheme.bodyLarge?.color,
-          ),
+          style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
         ),
         subtitle: Text(
           subtitle,
-          style: TextStyle(
-            fontSize: 14,
-            color: Theme.of(context).textTheme.bodyMedium?.color?.withOpacity(0.7),
-          ),
+          style: TextStyle(fontSize: 14, color: Colors.grey[600]),
         ),
         trailing: Icon(Icons.arrow_forward_ios, size: 16, color: Colors.grey),
         onTap: onTap,
@@ -217,7 +234,7 @@ class _SettingsPageState extends State<SettingsPage> {
   }) {
     return Card(
       elevation: 0,
-      color: Theme.of(context).cardTheme.color,
+      color: Colors.grey[50],
       margin: EdgeInsets.only(bottom: 8),
       child: SwitchListTile(
         secondary: Container(
@@ -230,18 +247,11 @@ class _SettingsPageState extends State<SettingsPage> {
         ),
         title: Text(
           title,
-          style: TextStyle(
-            fontSize: 16,
-            fontWeight: FontWeight.w600,
-            color: Theme.of(context).textTheme.bodyLarge?.color,
-          ),
+          style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
         ),
         subtitle: Text(
           subtitle,
-          style: TextStyle(
-            fontSize: 14,
-            color: Theme.of(context).textTheme.bodyMedium?.color?.withOpacity(0.7),
-          ),
+          style: TextStyle(fontSize: 14, color: Colors.grey[600]),
         ),
         value: value,
         onChanged: onChanged,
@@ -250,7 +260,7 @@ class _SettingsPageState extends State<SettingsPage> {
     );
   }
 
-  void _showLanguageDialog(ThemeProvider themeProvider) {
+  void _showLanguageDialog() {
     showDialog(
       context: context,
       builder: (BuildContext context) {
@@ -259,11 +269,11 @@ class _SettingsPageState extends State<SettingsPage> {
           content: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              _buildLanguageOption('English', themeProvider),
-              _buildLanguageOption('Spanish', themeProvider),
-              _buildLanguageOption('French', themeProvider),
-              _buildLanguageOption('German', themeProvider),
-              _buildLanguageOption('Chinese', themeProvider),
+              _buildLanguageOption('English'),
+              _buildLanguageOption('Spanish'),
+              _buildLanguageOption('French'),
+              _buildLanguageOption('German'),
+              _buildLanguageOption('Chinese'),
             ],
           ),
           actions: [
@@ -277,21 +287,23 @@ class _SettingsPageState extends State<SettingsPage> {
     );
   }
 
-  Widget _buildLanguageOption(String language, ThemeProvider themeProvider) {
+  Widget _buildLanguageOption(String language) {
     return ListTile(
       title: Text(language),
       leading: Radio<String>(
         value: language,
-        groupValue: themeProvider.selectedLanguage,
+        groupValue: _selectedLanguage,
         onChanged: (value) {
-          themeProvider.setLanguage(value!);
+          setState(() {
+            _selectedLanguage = value!;
+          });
           Navigator.pop(context);
         },
       ),
     );
   }
 
-  void _showThemeDialog(ThemeProvider themeProvider) {
+  void _showThemeDialog() {
     showDialog(
       context: context,
       builder: (BuildContext context) {
@@ -304,9 +316,12 @@ class _SettingsPageState extends State<SettingsPage> {
                 title: Text('Light'),
                 leading: Radio<String>(
                   value: 'Light',
-                  groupValue: themeProvider.isDarkMode ? 'Dark' : 'Light',
+                  groupValue: _selectedTheme,
                   onChanged: (value) {
-                    themeProvider.setDarkMode(false);
+                    setState(() {
+                      _selectedTheme = value!;
+                      _darkModeEnabled = false;
+                    });
                     Navigator.pop(context);
                   },
                 ),
@@ -315,9 +330,12 @@ class _SettingsPageState extends State<SettingsPage> {
                 title: Text('Dark'),
                 leading: Radio<String>(
                   value: 'Dark',
-                  groupValue: themeProvider.isDarkMode ? 'Dark' : 'Light',
+                  groupValue: _selectedTheme,
                   onChanged: (value) {
-                    themeProvider.setDarkMode(true);
+                    setState(() {
+                      _selectedTheme = value!;
+                      _darkModeEnabled = true;
+                    });
                     Navigator.pop(context);
                   },
                 ),
@@ -341,7 +359,9 @@ class _SettingsPageState extends State<SettingsPage> {
       builder: (BuildContext context) {
         return AlertDialog(
           title: Text('Clear Scan History'),
-          content: Text('Are you sure you want to clear all scan history? This action cannot be undone.'),
+          content: Text(
+            'Are you sure you want to clear all scan history? This action cannot be undone.',
+          ),
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(context),
@@ -368,9 +388,7 @@ class _SettingsPageState extends State<SettingsPage> {
       builder: (BuildContext context) {
         return AlertDialog(
           title: Text(title),
-          content: SingleChildScrollView(
-            child: Text(content),
-          ),
+          content: SingleChildScrollView(child: Text(content)),
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(context),
@@ -384,7 +402,7 @@ class _SettingsPageState extends State<SettingsPage> {
 
   void _showFeedbackDialog() {
     final TextEditingController feedbackController = TextEditingController();
-    
+
     showDialog(
       context: context,
       builder: (BuildContext context) {

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'settings.dart';
 
 void main() {
   runApp(const MyApp());
@@ -67,7 +68,10 @@ class _HomePageState extends State<HomePage> {
           IconButton(
             icon: Icon(Icons.settings, color: Colors.black),
             onPressed: () {
-              // Handle settings tap
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => const SettingsPage()),
+              );
             },
           ),
         ],
@@ -191,8 +195,12 @@ class _HomePageState extends State<HomePage> {
                     height: 56,
                     child: OutlinedButton(
                       onPressed: () {
-                        // Handle settings tap
-                        print('Settings tapped');
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => const SettingsPage(),
+                          ),
+                        );
                       },
                       style: OutlinedButton.styleFrom(
                         foregroundColor: Colors.blue,
