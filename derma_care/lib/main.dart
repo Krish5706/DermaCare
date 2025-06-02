@@ -6,7 +6,7 @@ void main() {
 }
 
 class MyApp extends StatelessWidget {
-  const MyApp({Key? key}) : super(key: key);
+  const MyApp({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -20,7 +20,7 @@ class MyApp extends StatelessWidget {
 }
 
 class HomePage extends StatefulWidget {
-  const HomePage({Key? key}) : super(key: key);
+  const HomePage({super.key});
 
   @override
   _HomePageState createState() => _HomePageState();
@@ -156,7 +156,7 @@ class _HomePageState extends State<HomePage> {
                   ),
                   SizedBox(height: 40),
                   // Give Feedback Button
-                  Container(
+                  SizedBox(
                     width: double.infinity,
                     height: 56,
                     child: ElevatedButton(
@@ -190,7 +190,7 @@ class _HomePageState extends State<HomePage> {
                   ),
                   SizedBox(height: 20),
                   // Settings Button
-                  Container(
+                  SizedBox(
                     width: double.infinity,
                     height: 56,
                     child: OutlinedButton(
