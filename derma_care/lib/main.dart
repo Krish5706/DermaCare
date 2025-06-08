@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'settings.dart';
-// import 'login_page.dart';
-// import 'signup_page.dart';
-
+import 'login.dart';
+import 'database_helper.dart';
 
 void main() {
   runApp(const MyApp());
@@ -16,8 +16,87 @@ class MyApp extends StatelessWidget {
     return MaterialApp(
       title: 'DermaCare',
       theme: ThemeData(primarySwatch: Colors.blue, fontFamily: 'Roboto'),
-      home: const HomePage(),
+      home: const SplashScreen(),
       debugShowCheckedModeBanner: false,
+    );
+  }
+}
+
+class SplashScreen extends StatefulWidget {
+  const SplashScreen({super.key});
+
+  @override
+  SplashScreenState createState() => SplashScreenState();
+}
+
+class SplashScreenState extends State<SplashScreen> {
+  @override
+  void initState() {
+    super.initState();
+    _checkLoginStatus();
+  }
+
+  Future<void> _checkLoginStatus() async {
+    await Future.delayed(const Duration(seconds: 2));
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    bool isLoggedIn = prefs.getBool('isLoggedIn') ?? false;
+
+    if (!mounted) return;
+
+    if (isLoggedIn) {
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (context) => const HomePage()),
+      );
+    } else {
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (context) => const MyLogin()),
+      );
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: Colors.blue,
+      body: Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Container(
+              width: 100,
+              height: 100,
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(20),
+              ),
+              child: const Icon(Icons.local_hospital, color: Colors.blue, size: 60),
+            ),
+            const SizedBox(height: 20),
+            const Text(
+              'DermaCare',
+              style: TextStyle(
+                color: Colors.white,
+                fontSize: 32,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            const SizedBox(height: 10),
+            const Text(
+              'Your personal skin care assistant',
+              style: TextStyle(
+                color: Colors.white70,
+                fontSize: 16,
+              ),
+            ),
+            const SizedBox(height: 50),
+            const CircularProgressIndicator(
+              valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }
@@ -26,11 +105,34 @@ class HomePage extends StatefulWidget {
   const HomePage({super.key});
 
   @override
-  _HomePageState createState() => _HomePageState();
+  HomePageState createState() => HomePageState();
 }
 
-class _HomePageState extends State<HomePage> {
+class HomePageState extends State<HomePage> {
   int _selectedIndex = 0;
+  String userName = '';
+
+  @override
+  void initState() {
+    super.initState();
+    _loadUserData();
+  }
+
+  Future<void> _loadUserData() async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    int? userId = prefs.getInt('userId');
+
+    if (userId != null) {
+      var user = await DatabaseHelper.instance.getUser(userId);
+      if (user != null && user.containsKey('name')) {
+        setState(() {
+          userName = user['name'];
+        });
+      }
+    } else {
+      debugPrint('User ID not found in SharedPreferences.');
+    }
+  }
 
   void _onItemTapped(int index) {
     setState(() {
@@ -54,10 +156,10 @@ class _HomePageState extends State<HomePage> {
                 color: Colors.blue,
                 borderRadius: BorderRadius.circular(4),
               ),
-              child: Icon(Icons.local_hospital, color: Colors.white, size: 16),
+              child: const Icon(Icons.local_hospital, color: Colors.white, size: 16),
             ),
-            SizedBox(width: 8),
-            Text(
+            const SizedBox(width: 8),
+            const Text(
               'DermaCare',
               style: TextStyle(
                 color: Colors.black,
@@ -69,7 +171,7 @@ class _HomePageState extends State<HomePage> {
         ),
         actions: [
           IconButton(
-            icon: Icon(Icons.settings, color: Colors.black),
+            icon: const Icon(Icons.settings, color: Colors.black),
             onPressed: () {
               Navigator.push(
                 context,
@@ -84,16 +186,16 @@ class _HomePageState extends State<HomePage> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            SizedBox(height: 20),
+            const SizedBox(height: 20),
             Text(
-              'Welcome to DermaCare',
-              style: TextStyle(
+              'Welcome ${userName.isNotEmpty ? userName : 'User'}',
+              style: const TextStyle(
                 fontSize: 28,
                 fontWeight: FontWeight.bold,
                 color: Colors.black,
               ),
             ),
-            SizedBox(height: 8),
+            const SizedBox(height: 8),
             Text(
               'Your personal skin disease detection app.',
               style: TextStyle(
@@ -102,7 +204,7 @@ class _HomePageState extends State<HomePage> {
                 height: 1.4,
               ),
             ),
-            SizedBox(height: 40),
+            const SizedBox(height: 40),
             Expanded(
               child: Column(
                 children: [
@@ -112,60 +214,54 @@ class _HomePageState extends State<HomePage> {
                         child: _buildFeatureCard(
                           'Detect Disease',
                           Icons.search,
-                          () {
-                            // Handle detect disease tap
-                            print('Detect Disease tapped');
+                              () {
+                            debugPrint('Detect Disease tapped');
                           },
                         ),
                       ),
-                      SizedBox(width: 16),
+                      const SizedBox(width: 16),
                       Expanded(
                         child: _buildFeatureCard(
                           'Disease Info',
                           Icons.info_outline,
-                          () {
-                            // Handle disease info tap
-                            print('Disease Info tapped');
+                              () {
+                            debugPrint('Disease Info tapped');
                           },
                         ),
                       ),
                     ],
                   ),
-                  SizedBox(height: 16),
+                  const SizedBox(height: 16),
                   Row(
                     children: [
                       Expanded(
                         child: _buildFeatureCard(
                           'Scan History',
                           Icons.history,
-                          () {
-                            // Handle scan history tap
-                            print('Scan History tapped');
+                              () {
+                            debugPrint('Scan History tapped');
                           },
                         ),
                       ),
-                      SizedBox(width: 16),
+                      const SizedBox(width: 16),
                       Expanded(
                         child: _buildFeatureCard(
                           'Offline Mode',
                           Icons.cloud_off,
-                          () {
-                            // Handle offline mode tap
-                            print('Offline Mode tapped');
+                              () {
+                            debugPrint('Offline Mode tapped');
                           },
                         ),
                       ),
                     ],
                   ),
-                  SizedBox(height: 40),
-                  // Give Feedback Button
+                  const SizedBox(height: 40),
                   SizedBox(
                     width: double.infinity,
                     height: 56,
                     child: ElevatedButton(
                       onPressed: () {
-                        // Handle feedback tap
-                        print('Give Feedback tapped');
+                        debugPrint('Give Feedback tapped');
                       },
                       style: ElevatedButton.styleFrom(
                         backgroundColor: Colors.blue,
@@ -175,7 +271,7 @@ class _HomePageState extends State<HomePage> {
                         ),
                         elevation: 0,
                       ),
-                      child: Row(
+                      child: const Row(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
                           Icon(Icons.chat_bubble_outline, size: 20),
@@ -191,8 +287,7 @@ class _HomePageState extends State<HomePage> {
                       ),
                     ),
                   ),
-                  SizedBox(height: 20),
-                  // Settings Button
+                  const SizedBox(height: 20),
                   SizedBox(
                     width: double.infinity,
                     height: 56,
@@ -207,12 +302,12 @@ class _HomePageState extends State<HomePage> {
                       },
                       style: OutlinedButton.styleFrom(
                         foregroundColor: Colors.blue,
-                        side: BorderSide(color: Colors.blue, width: 1.5),
+                        side: const BorderSide(color: Colors.blue, width: 1.5),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(12),
                         ),
                       ),
-                      child: Row(
+                      child: const Row(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
                           Icon(Icons.tune, size: 20),
@@ -235,7 +330,7 @@ class _HomePageState extends State<HomePage> {
         ),
       ),
       bottomNavigationBar: BottomNavigationBar(
-        items: [
+        items: const [
           BottomNavigationBarItem(icon: Icon(Icons.home), label: ''),
           BottomNavigationBarItem(icon: Icon(Icons.search), label: ''),
           BottomNavigationBarItem(icon: Icon(Icons.person), label: ''),
@@ -257,27 +352,25 @@ class _HomePageState extends State<HomePage> {
       child: Container(
         height: 120,
         decoration: BoxDecoration(
-          color: Color(0xFFE3F2FD), // Light blue background
+          color: const Color(0xFFE3F2FD),
           borderRadius: BorderRadius.circular(16),
         ),
-        child: Padding(
-          padding: const EdgeInsets.all(16.0),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(icon, size: 32, color: Colors.blue[700]),
-              SizedBox(height: 12),
-              Text(
-                title,
-                style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w600,
-                  color: Colors.black87,
-                ),
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(icon, size: 32, color: Colors.blue[700]),
+            const SizedBox(height: 12),
+            Text(
+              title,
+              style: const TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.w600,
+                color: Colors.black87,
               ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );

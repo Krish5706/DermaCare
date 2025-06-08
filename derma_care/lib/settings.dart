@@ -1,4 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:image_picker/image_picker.dart';
+import 'dart:io';
+import 'database_helper.dart';
+import 'login.dart';
 
 class SettingsPage extends StatefulWidget {
   const SettingsPage({super.key});
@@ -15,6 +20,93 @@ class _SettingsPageState extends State<SettingsPage> {
   String _selectedLanguage = 'English';
   String _selectedTheme = 'Light';
 
+  // User profile data
+  Map<String, dynamic>? _userData;
+  String? _profileImagePath;
+  int? _currentUserId;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadUserData();
+    _loadPreferences();
+  }
+
+  Future<void> _loadUserData() async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    _currentUserId = prefs.getInt('userId');
+
+    if (_currentUserId != null) {
+      var user = await DatabaseHelper.instance.getUser(_currentUserId!);
+      if (user != null) {
+        setState(() {
+          _userData = user;
+          _profileImagePath = user['profile_image'];
+        });
+      }
+    }
+  }
+
+  Future<void> _loadPreferences() async {
+    if (_currentUserId != null) {
+      var prefs = await DatabaseHelper.instance.getUserPreferences(_currentUserId!);
+      if (prefs != null) {
+        setState(() {
+          _notificationsEnabled = prefs['notifications_enabled'] == 1;
+          _darkModeEnabled = prefs['dark_mode_enabled'] == 1;
+          _autoSaveEnabled = prefs['auto_save_enabled'] == 1;
+          _offlineModeEnabled = prefs['offline_mode_enabled'] == 1;
+          _selectedLanguage = prefs['selected_language'] ?? 'English';
+          _selectedTheme = prefs['selected_theme'] ?? 'Light';
+        });
+      }
+    }
+  }
+
+  Future<void> _savePreferences() async {
+    if (_currentUserId != null) {
+      await DatabaseHelper.instance.updateUserPreferences(_currentUserId!, {
+        'notifications_enabled': _notificationsEnabled ? 1 : 0,
+        'dark_mode_enabled': _darkModeEnabled ? 1 : 0,
+        'auto_save_enabled': _autoSaveEnabled ? 1 : 0,
+        'offline_mode_enabled': _offlineModeEnabled ? 1 : 0,
+        'selected_language': _selectedLanguage,
+        'selected_theme': _selectedTheme,
+      });
+    }
+  }
+
+  Future<void> _pickImage() async {
+    final ImagePicker picker = ImagePicker();
+    final XFile? image = await picker.pickImage(source: ImageSource.gallery);
+
+    if (image != null && _currentUserId != null) {
+      setState(() {
+        _profileImagePath = image.path;
+      });
+
+      // Update in database
+      await DatabaseHelper.instance.updateUser(_currentUserId!, {
+        'profile_image': image.path,
+      });
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Profile picture updated successfully')),
+      );
+    }
+  }
+
+  Future<void> _logout() async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    await prefs.clear();
+
+    Navigator.pushAndRemoveUntil(
+      context,
+      MaterialPageRoute(builder: (context) => const MyLogin()),
+          (route) => false,
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -23,10 +115,10 @@ class _SettingsPageState extends State<SettingsPage> {
         backgroundColor: Colors.white,
         elevation: 0,
         leading: IconButton(
-          icon: Icon(Icons.arrow_back, color: Colors.black),
+          icon: const Icon(Icons.arrow_back, color: Colors.black),
           onPressed: () => Navigator.pop(context),
         ),
-        title: Text(
+        title: const Text(
           'Settings',
           style: TextStyle(
             color: Colors.black,
@@ -36,10 +128,15 @@ class _SettingsPageState extends State<SettingsPage> {
         ),
       ),
       body: SingleChildScrollView(
-        padding: EdgeInsets.all(16.0),
+        padding: const EdgeInsets.all(16.0),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            // Profile Section
+            _buildSectionHeader('Profile'),
+            _buildProfileCard(),
+
+            const SizedBox(height: 24),
             _buildSectionHeader('General'),
             _buildSettingCard(
               icon: Icons.language,
@@ -54,7 +151,7 @@ class _SettingsPageState extends State<SettingsPage> {
               onTap: () => _showThemeDialog(),
             ),
 
-            SizedBox(height: 24),
+            const SizedBox(height: 24),
             _buildSectionHeader('Notifications'),
             _buildSwitchCard(
               icon: Icons.notifications,
@@ -65,10 +162,11 @@ class _SettingsPageState extends State<SettingsPage> {
                 setState(() {
                   _notificationsEnabled = value;
                 });
+                _savePreferences();
               },
             ),
 
-            SizedBox(height: 24),
+            const SizedBox(height: 24),
             _buildSectionHeader('App Preferences'),
             _buildSwitchCard(
               icon: Icons.dark_mode,
@@ -80,6 +178,7 @@ class _SettingsPageState extends State<SettingsPage> {
                   _darkModeEnabled = value;
                   _selectedTheme = value ? 'Dark' : 'Light';
                 });
+                _savePreferences();
               },
             ),
             _buildSwitchCard(
@@ -91,6 +190,7 @@ class _SettingsPageState extends State<SettingsPage> {
                 setState(() {
                   _autoSaveEnabled = value;
                 });
+                _savePreferences();
               },
             ),
             _buildSwitchCard(
@@ -102,10 +202,11 @@ class _SettingsPageState extends State<SettingsPage> {
                 setState(() {
                   _offlineModeEnabled = value;
                 });
+                _savePreferences();
               },
             ),
 
-            SizedBox(height: 24),
+            const SizedBox(height: 24),
             _buildSectionHeader('Data & Privacy'),
             _buildSettingCard(
               icon: Icons.history,
@@ -118,7 +219,6 @@ class _SettingsPageState extends State<SettingsPage> {
               title: 'Privacy Policy',
               subtitle: 'Read our privacy policy',
               onTap: () {
-                // Navigate to privacy policy
                 _showInfoDialog(
                   'Privacy Policy',
                   'Your privacy is important to us. This app processes skin images locally and does not share personal data without consent.',
@@ -130,7 +230,6 @@ class _SettingsPageState extends State<SettingsPage> {
               title: 'Terms of Service',
               subtitle: 'View terms and conditions',
               onTap: () {
-                // Navigate to terms of service
                 _showInfoDialog(
                   'Terms of Service',
                   'By using this app, you agree to our terms and conditions. This app is for educational purposes and should not replace professional medical advice.',
@@ -138,7 +237,7 @@ class _SettingsPageState extends State<SettingsPage> {
               },
             ),
 
-            SizedBox(height: 24),
+            const SizedBox(height: 24),
             _buildSectionHeader('Support'),
             _buildSettingCard(
               icon: Icons.help,
@@ -147,7 +246,7 @@ class _SettingsPageState extends State<SettingsPage> {
               onTap: () {
                 _showInfoDialog(
                   'Help & FAQ',
-                  'For support, please contact us at support@skinscan.com or visit our FAQ section on the website.',
+                  'For support, please contact us at support@dermacare.com or visit our FAQ section on the website.',
                 );
               },
             ),
@@ -165,13 +264,108 @@ class _SettingsPageState extends State<SettingsPage> {
               subtitle: 'App version and information',
               onTap: () {
                 _showInfoDialog(
-                  'About SkinScan',
-                  'SkinScan v1.0.0\n\nA personal skin disease detection app powered by AI technology.\n\nDeveloped with care for your health and privacy.',
+                  'About DermaCare',
+                  'DermaCare v1.0.0\n\nA personal skin disease detection app powered by AI technology.\n\nDeveloped with care for your health and privacy.',
                 );
               },
             ),
 
-            SizedBox(height: 40),
+            const SizedBox(height: 24),
+            _buildSectionHeader('Account'),
+            _buildSettingCard(
+              icon: Icons.logout,
+              title: 'Logout',
+              subtitle: 'Sign out of your account',
+              onTap: () => _showLogoutDialog(),
+              textColor: Colors.red,
+            ),
+
+            const SizedBox(height: 40),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildProfileCard() {
+    return Card(
+      elevation: 0,
+      color: Colors.grey[50],
+      margin: const EdgeInsets.only(bottom: 8),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Row(
+          children: [
+            GestureDetector(
+              onTap: _pickImage,
+              child: Container(
+                width: 80,
+                height: 80,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: Colors.blue[100],
+                  image: _profileImagePath != null
+                      ? DecorationImage(
+                    image: FileImage(File(_profileImagePath!)),
+                    fit: BoxFit.cover,
+                  )
+                      : null,
+                ),
+                child: _profileImagePath == null
+                    ? Icon(Icons.person, size: 40, color: Colors.blue[700])
+                    : null,
+              ),
+            ),
+            const SizedBox(width: 16),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    _userData?['name'] ?? 'Loading...',
+                    style: const TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.black87,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    _userData?['email'] ?? 'Loading...',
+                    style: TextStyle(
+                      fontSize: 14,
+                      color: Colors.grey[600],
+                    ),
+                  ),
+                  if (_userData?['phone'] != null && _userData!['phone'].toString().isNotEmpty) ...[
+                    const SizedBox(height: 2),
+                    Text(
+                      _userData!['phone'],
+                      style: TextStyle(
+                        fontSize: 14,
+                        color: Colors.grey[600],
+                      ),
+                    ),
+                  ],
+                  const SizedBox(height: 8),
+                  GestureDetector(
+                    onTap: () => _showEditProfileDialog(),
+                    child: Text(
+                      'Edit Profile',
+                      style: TextStyle(
+                        fontSize: 14,
+                        color: Colors.blue[700],
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            IconButton(
+              onPressed: _pickImage,
+              icon: Icon(Icons.camera_alt, color: Colors.grey[600]),
+            ),
           ],
         ),
       ),
@@ -180,7 +374,7 @@ class _SettingsPageState extends State<SettingsPage> {
 
   Widget _buildSectionHeader(String title) {
     return Padding(
-      padding: EdgeInsets.only(bottom: 12, top: 8),
+      padding: const EdgeInsets.only(bottom: 12, top: 8),
       child: Text(
         title,
         style: TextStyle(
@@ -197,29 +391,38 @@ class _SettingsPageState extends State<SettingsPage> {
     required String title,
     required String subtitle,
     required VoidCallback onTap,
+    Color? textColor,
   }) {
     return Card(
       elevation: 0,
       color: Colors.grey[50],
-      margin: EdgeInsets.only(bottom: 8),
+      margin: const EdgeInsets.only(bottom: 8),
       child: ListTile(
         leading: Container(
-          padding: EdgeInsets.all(8),
+          padding: const EdgeInsets.all(8),
           decoration: BoxDecoration(
-            color: Colors.blue[100],
+            color: textColor == Colors.red ? Colors.red[100] : Colors.blue[100],
             borderRadius: BorderRadius.circular(8),
           ),
-          child: Icon(icon, color: Colors.blue[700], size: 20),
+          child: Icon(
+              icon,
+              color: textColor == Colors.red ? Colors.red[700] : Colors.blue[700],
+              size: 20
+          ),
         ),
         title: Text(
           title,
-          style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+          style: TextStyle(
+            fontSize: 16,
+            fontWeight: FontWeight.w600,
+            color: textColor ?? Colors.black87,
+          ),
         ),
         subtitle: Text(
           subtitle,
           style: TextStyle(fontSize: 14, color: Colors.grey[600]),
         ),
-        trailing: Icon(Icons.arrow_forward_ios, size: 16, color: Colors.grey),
+        trailing: const Icon(Icons.arrow_forward_ios, size: 16, color: Colors.grey),
         onTap: onTap,
       ),
     );
@@ -235,10 +438,10 @@ class _SettingsPageState extends State<SettingsPage> {
     return Card(
       elevation: 0,
       color: Colors.grey[50],
-      margin: EdgeInsets.only(bottom: 8),
+      margin: const EdgeInsets.only(bottom: 8),
       child: SwitchListTile(
         secondary: Container(
-          padding: EdgeInsets.all(8),
+          padding: const EdgeInsets.all(8),
           decoration: BoxDecoration(
             color: Colors.blue[100],
             borderRadius: BorderRadius.circular(8),
@@ -247,7 +450,7 @@ class _SettingsPageState extends State<SettingsPage> {
         ),
         title: Text(
           title,
-          style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+          style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
         ),
         subtitle: Text(
           subtitle,
@@ -260,12 +463,78 @@ class _SettingsPageState extends State<SettingsPage> {
     );
   }
 
+  void _showEditProfileDialog() {
+    final nameController = TextEditingController(text: _userData?['name'] ?? '');
+    final phoneController = TextEditingController(text: _userData?['phone'] ?? '');
+
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text('Edit Profile'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(
+                controller: nameController,
+                decoration: InputDecoration(
+                  labelText: 'Full Name',
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 16),
+              TextField(
+                controller: phoneController,
+                keyboardType: TextInputType.phone,
+                decoration: InputDecoration(
+                  labelText: 'Phone Number',
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                ),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Cancel'),
+            ),
+            ElevatedButton(
+              onPressed: () async {
+                if (nameController.text.isNotEmpty && _currentUserId != null) {
+                  await DatabaseHelper.instance.updateUser(_currentUserId!, {
+                    'name': nameController.text,
+                    'phone': phoneController.text,
+                  });
+
+                  setState(() {
+                    _userData?['name'] = nameController.text;
+                    _userData?['phone'] = phoneController.text;
+                  });
+
+                  Navigator.pop(context);
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Profile updated successfully')),
+                  );
+                }
+              },
+              child: const Text('Save'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
   void _showLanguageDialog() {
     showDialog(
       context: context,
       builder: (BuildContext context) {
         return AlertDialog(
-          title: Text('Select Language'),
+          title: const Text('Select Language'),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
@@ -279,7 +548,7 @@ class _SettingsPageState extends State<SettingsPage> {
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(context),
-              child: Text('Cancel'),
+              child: const Text('Cancel'),
             ),
           ],
         );
@@ -297,6 +566,7 @@ class _SettingsPageState extends State<SettingsPage> {
           setState(() {
             _selectedLanguage = value!;
           });
+          _savePreferences();
           Navigator.pop(context);
         },
       ),
@@ -308,12 +578,12 @@ class _SettingsPageState extends State<SettingsPage> {
       context: context,
       builder: (BuildContext context) {
         return AlertDialog(
-          title: Text('Select Theme'),
+          title: const Text('Select Theme'),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
               ListTile(
-                title: Text('Light'),
+                title: const Text('Light'),
                 leading: Radio<String>(
                   value: 'Light',
                   groupValue: _selectedTheme,
@@ -322,12 +592,13 @@ class _SettingsPageState extends State<SettingsPage> {
                       _selectedTheme = value!;
                       _darkModeEnabled = false;
                     });
+                    _savePreferences();
                     Navigator.pop(context);
                   },
                 ),
               ),
               ListTile(
-                title: Text('Dark'),
+                title: const Text('Dark'),
                 leading: Radio<String>(
                   value: 'Dark',
                   groupValue: _selectedTheme,
@@ -336,6 +607,7 @@ class _SettingsPageState extends State<SettingsPage> {
                       _selectedTheme = value!;
                       _darkModeEnabled = true;
                     });
+                    _savePreferences();
                     Navigator.pop(context);
                   },
                 ),
@@ -345,7 +617,7 @@ class _SettingsPageState extends State<SettingsPage> {
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(context),
-              child: Text('Cancel'),
+              child: const Text('Cancel'),
             ),
           ],
         );
@@ -358,23 +630,51 @@ class _SettingsPageState extends State<SettingsPage> {
       context: context,
       builder: (BuildContext context) {
         return AlertDialog(
-          title: Text('Clear Scan History'),
-          content: Text(
+          title: const Text('Clear Scan History'),
+          content: const Text(
             'Are you sure you want to clear all scan history? This action cannot be undone.',
           ),
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(context),
-              child: Text('Cancel'),
+              child: const Text('Cancel'),
+            ),
+            TextButton(
+              onPressed: () async {
+                if (_currentUserId != null) {
+                  await DatabaseHelper.instance.deleteScanHistory(_currentUserId!);
+                }
+                Navigator.pop(context);
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Scan history cleared successfully')),
+                );
+              },
+              child: const Text('Clear', style: TextStyle(color: Colors.red)),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  void _showLogoutDialog() {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text('Logout'),
+          content: const Text('Are you sure you want to logout?'),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Cancel'),
             ),
             TextButton(
               onPressed: () {
                 Navigator.pop(context);
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(content: Text('Scan history cleared successfully')),
-                );
+                _logout();
               },
-              child: Text('Clear', style: TextStyle(color: Colors.red)),
+              child: const Text('Logout', style: TextStyle(color: Colors.red)),
             ),
           ],
         );
@@ -392,7 +692,7 @@ class _SettingsPageState extends State<SettingsPage> {
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(context),
-              child: Text('Close'),
+              child: const Text('Close'),
             ),
           ],
         );
@@ -407,16 +707,16 @@ class _SettingsPageState extends State<SettingsPage> {
       context: context,
       builder: (BuildContext context) {
         return AlertDialog(
-          title: Text('Send Feedback'),
+          title: const Text('Send Feedback'),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Text('We value your feedback! Please share your thoughts:'),
-              SizedBox(height: 16),
+              const Text('We value your feedback! Please share your thoughts:'),
+              const SizedBox(height: 16),
               TextField(
                 controller: feedbackController,
                 maxLines: 4,
-                decoration: InputDecoration(
+                decoration: const InputDecoration(
                   hintText: 'Enter your feedback here...',
                   border: OutlineInputBorder(),
                 ),
@@ -426,16 +726,16 @@ class _SettingsPageState extends State<SettingsPage> {
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(context),
-              child: Text('Cancel'),
+              child: const Text('Cancel'),
             ),
             ElevatedButton(
               onPressed: () {
                 Navigator.pop(context);
                 ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(content: Text('Thank you for your feedback!')),
+                  const SnackBar(content: Text('Thank you for your feedback!')),
                 );
               },
-              child: Text('Send'),
+              child: const Text('Send'),
             ),
           ],
         );
