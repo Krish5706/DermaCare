@@ -185,7 +185,7 @@ class _MyLoginState extends State<MyLogin> {
     return Container(
       height: height,
       width: height == null ? null : double.infinity,
-      color: const Color(0xFFEFB1D9),
+      color: const Color(0xFFB1D9EF),
       padding: const EdgeInsets.symmetric(horizontal: 16),
       child: const Center(
         child: Column(

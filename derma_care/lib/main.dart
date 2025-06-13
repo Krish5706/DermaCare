@@ -199,9 +199,9 @@ class HomePageState extends State<HomePage> {
             Text(
               'Your personal skin disease detection app.',
               style: TextStyle(
-                fontSize: 16,
+                fontSize: 19,
                 color: Colors.grey[600],
-                height: 1.4,
+                height: 1.5,
               ),
             ),
             const SizedBox(height: 40),
