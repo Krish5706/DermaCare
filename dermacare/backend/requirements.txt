@@ -1,0 +1,7 @@
+Flask
+flask-cors
+flask-pymongo
+PyJWT
+Werkzeug
+Pillow
+numpy

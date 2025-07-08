@@ -1,0 +1,27 @@
+name: flutter_auth_app
+description: A modern Flutter authentication app with Flask backend
+publish_to: 'none'
+version: 1.0.0+1
+environment:
+  sdk: ">=3.0.0 <4.0.0"
+dependencies:
+  flutter:
+    sdk: flutter
+  provider: ^6.0.0
+  http: ^1.2.0
+  flutter_secure_storage: ^9.0.0
+  shared_preferences: ^2.2.2
+  email_validator: ^2.1.17
+  fluttertoast: ^8.2.4
+  image_picker: ^1.0.0
+  path_provider: ^2.1.0
+  flutter_svg: ^2.0.7
+  cupertino_icons: ^1.0.2
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+flutter:
+  uses-material-design: true
+  assets:
+    - lib/assets/
+    - lib/assets/google.svg
