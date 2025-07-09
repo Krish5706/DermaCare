@@ -215,7 +215,7 @@ class _SignupScreenState extends State<SignupScreen> {
                             style: TextStyle(
                               fontSize: 18,
                               fontWeight: FontWeight.w600,
-                              color: Colors.white,
+                              color: Color.fromARGB(255, 0, 0, 0),
                             ),
                           ),
                         ),
