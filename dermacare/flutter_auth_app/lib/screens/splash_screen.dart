@@ -37,7 +37,7 @@ class SplashScreen extends StatelessWidget {
               ),
               const SizedBox(height: 24),
               Text(
-                'Healthcare',
+                'DermaCare',
                 style: theme.textTheme.titleLarge?.copyWith(
                   color: Color(0xFF1A3C7C),
                   fontWeight: FontWeight.bold,
@@ -46,7 +46,7 @@ class SplashScreen extends StatelessWidget {
               ),
               const SizedBox(height: 32),
               Text(
-                "Let's get started!",
+                "Skin Diesease Detection App",
                 style: theme.textTheme.headlineSmall?.copyWith(
                   fontWeight: FontWeight.bold,
                   color: Colors.black87,
@@ -77,7 +77,10 @@ class SplashScreen extends StatelessWidget {
                   },
                   child: const Text(
                     'Login',
-                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: Colors.white),
+                    style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.w600,
+                        color: Colors.white),
                   ),
                 ),
               ),

@@ -5,7 +5,7 @@
     <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
     <uses-permission android:name="android.permission.INTERNET" />
     
-    <applicatio
+    <application
         android:label="flutter_auth_app"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher">

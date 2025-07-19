@@ -6,6 +6,8 @@ import 'dart:io' show Platform;
 import 'dart:async';
 import 'package:flutter/foundation.dart' show kIsWeb;
 
+import '../services/google_auth_service.dart';
+
 class AuthProvider extends ChangeNotifier {
   String? _token;
   String? _username;
@@ -68,16 +70,16 @@ class AuthProvider extends ChangeNotifier {
   static String get _baseUrl {
     if (kIsWeb) {
       // Use localhost for web
-      return 'http://localhost:5000';
+      return 'http://172.27.130.169:5000';
     } else if (Platform.isAndroid) {
       // Use 10.0.2.2 for Android emulator (maps to host's localhost)
-      return 'http://10.0.2.2:5000';
+      return 'http://172.27.130.169:5000';
     } else if (Platform.isIOS) {
       // Use localhost for iOS simulator
-      return 'http://localhost:5000';
+      return 'http://172.27.130.169:5000';
     } else {
       // Default fallback to localhost
-      return 'http://localhost:5000';
+      return 'http://172.27.130.169:5000';
     }
   }
 
@@ -85,54 +87,56 @@ class AuthProvider extends ChangeNotifier {
     _isLoading = true;
     _error = null;
     notifyListeners();
-    
+
     try {
       print('=== LOGIN DEBUG ===');
       print('Email: $email');
       print('Backend URL: $_baseUrl/login');
-      
+
       final uri = Uri.parse('$_baseUrl/login');
       print('Parsed URI: $uri');
-      
+
       final requestBody = jsonEncode({'email': email, 'password': password});
       print('Request body: $requestBody');
-      
-      final res = await http.post(
-        uri,
-        headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json',
-        },
-        body: requestBody,
-      ).timeout(const Duration(seconds: 10));
-      
+
+      final res = await http
+          .post(
+            uri,
+            headers: {
+              'Content-Type': 'application/json',
+              'Accept': 'application/json',
+            },
+            body: requestBody,
+          )
+          .timeout(const Duration(seconds: 10));
+
       print('Response status: ${res.statusCode}');
       print('Response headers: ${res.headers}');
       print('Response body: ${res.body}');
-      
+
       if (res.statusCode == 200) {
         try {
           final data = jsonDecode(res.body);
           print('Parsed response data: $data');
-          
+
           _token = data['token'];
           _username = data['username'];
           _email = data['email'];
-          
+
           if (_token == null || _username == null || _email == null) {
             _error = 'Invalid response format from server';
             print('Error: Missing required fields in response');
             return;
           }
-          
+
           final prefs = await SharedPreferences.getInstance();
           await prefs.setString('jwt_token', _token!);
           await prefs.setString('username', _username!);
           await prefs.setString('email', _email!);
-          
-          print('Login successful! User: $_username, Token: ${_token!.substring(0, 20)}...');
+
+          print(
+              'Login successful! User: $_username, Token: ${_token!.substring(0, 20)}...');
           _error = null;
-          
         } catch (parseError) {
           _error = 'Failed to parse server response';
           print('JSON parse error: $parseError');
@@ -140,7 +144,8 @@ class AuthProvider extends ChangeNotifier {
       } else {
         try {
           final data = jsonDecode(res.body);
-          _error = data['message'] ?? 'Login failed with status ${res.statusCode}';
+          _error =
+              data['message'] ?? 'Login failed with status ${res.statusCode}';
         } catch (parseError) {
           _error = 'Login failed with status ${res.statusCode}';
         }
@@ -156,7 +161,7 @@ class AuthProvider extends ChangeNotifier {
       }
       print('Login exception: $e');
     }
-    
+
     _isLoading = false;
     notifyListeners();
     print('=== LOGIN DEBUG END ===');
@@ -166,36 +171,35 @@ class AuthProvider extends ChangeNotifier {
     _isLoading = true;
     _error = null;
     notifyListeners();
-    
+
     try {
       print('=== REGISTRATION DEBUG ===');
       print('Username: $username');
       print('Email: $email');
       print('Backend URL: $_baseUrl/register');
-      
+
       final uri = Uri.parse('$_baseUrl/register');
       print('Parsed URI: $uri');
-      
-      final requestBody = jsonEncode({
-        'username': username,
-        'email': email,
-        'password': password
-      });
+
+      final requestBody = jsonEncode(
+          {'username': username, 'email': email, 'password': password});
       print('Request body: $requestBody');
-      
-      final res = await http.post(
-        uri,
-        headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json',
-        },
-        body: requestBody,
-      ).timeout(const Duration(seconds: 10));
-      
+
+      final res = await http
+          .post(
+            uri,
+            headers: {
+              'Content-Type': 'application/json',
+              'Accept': 'application/json',
+            },
+            body: requestBody,
+          )
+          .timeout(const Duration(seconds: 10));
+
       print('Response status: ${res.statusCode}');
       print('Response headers: ${res.headers}');
       print('Response body: ${res.body}');
-      
+
       if (res.statusCode == 201) {
         print('Registration successful! Auto-logging in...');
         _error = null;
@@ -204,7 +208,8 @@ class AuthProvider extends ChangeNotifier {
       } else {
         try {
           final data = jsonDecode(res.body);
-          _error = data['message'] ?? 'Registration failed with status ${res.statusCode}';
+          _error = data['message'] ??
+              'Registration failed with status ${res.statusCode}';
         } catch (parseError) {
           _error = 'Registration failed with status ${res.statusCode}';
         }
@@ -220,13 +225,20 @@ class AuthProvider extends ChangeNotifier {
       }
       print('Registration exception: $e');
     }
-    
+
     _isLoading = false;
     notifyListeners();
     print('=== REGISTRATION DEBUG END ===');
   }
 
   Future<void> logout() async {
+    // Sign out from Google if signed in
+    try {
+      await GoogleAuthService.signOut();
+    } catch (e) {
+      print('Error signing out from Google: $e');
+    }
+
     _token = null;
     _username = null;
     _email = null;
@@ -237,6 +249,7 @@ class AuthProvider extends ChangeNotifier {
     await prefs.remove('username');
     await prefs.remove('email');
     await prefs.remove('user_phone');
+    await prefs.remove('profile_picture');
     notifyListeners();
   }
 
@@ -260,22 +273,52 @@ class AuthProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  // Google Sign-In (placeholder implementation)
+  // Google Sign-In implementation
   Future<void> signInWithGoogle() async {
     _isLoading = true;
     _error = null;
     notifyListeners();
-    
+
     try {
-      // TODO: Implement Google Sign-In
-      // For now, show a message that it's not implemented
-      await Future.delayed(const Duration(seconds: 1));
-      _error = 'Google Sign-In not implemented yet';
+      print('=== GOOGLE SIGN-IN PROVIDER DEBUG ===');
+
+      final result = await GoogleAuthService.signInWithGoogle();
+
+      if (result != null) {
+        _token = result['token'];
+        _username = result['username'];
+        _email = result['email'];
+
+        if (_token == null || _username == null || _email == null) {
+          _error = 'Invalid response from Google authentication';
+          print('Error: Missing required fields in Google auth response');
+          return;
+        }
+
+        // Save to SharedPreferences
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.setString('jwt_token', _token!);
+        await prefs.setString('username', _username!);
+        await prefs.setString('email', _email!);
+
+        // Save profile picture if available
+        if (result['profile_picture'] != null) {
+          await prefs.setString('profile_picture', result['profile_picture']);
+        }
+
+        print('Google sign-in successful! User: $_username');
+        _error = null;
+      } else {
+        _error = 'Google sign-in was cancelled';
+        print('Google sign-in was cancelled by user');
+      }
     } catch (e) {
       _error = 'Google Sign-In failed: ${e.toString()}';
+      print('Google sign-in exception: $e');
     }
-    
+
     _isLoading = false;
     notifyListeners();
+    print('=== GOOGLE SIGN-IN PROVIDER DEBUG END ===');
   }
 }

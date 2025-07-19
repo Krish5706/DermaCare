@@ -12,6 +12,9 @@ import base64
 from PIL import Image
 import io
 import numpy as np
+from google.oauth2 import id_token
+from google.auth.transport import requests as google_requests
+import requests
 
 app = Flask(__name__)
 # Allow all origins for testing (use specific origins in production)
@@ -20,6 +23,9 @@ CORS(app, resources={r"/*": {"origins": "*"}})  # Changed to allow all origins
 # Configurations
 app.config['MONGO_URI'] = 'mongodb+srv://vaghelanikhil:NikhilVaghela121607@cluster0.qo1wq3w.mongodb.net/Cluster0?retryWrites=true&w=majority&appName=Cluster0'
 app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'agbvaljvhavmnbavhalfhuaefhbvchjvbvbavd')
+
+# Google OAuth Configuration
+GOOGLE_CLIENT_ID = os.environ.get('GOOGLE_CLIENT_ID', 'your-google-client-id.googleusercontent.com')
 
 mongo = PyMongo(app)
 users = mongo.db.users
@@ -50,6 +56,133 @@ def token_required(f):
             return jsonify({'message': 'Token is invalid!'}), 401
         return f(current_user, *args, **kwargs)
     return decorated
+
+@app.route('/auth/google', methods=['POST'])
+def google_auth():
+    try:
+        data = request.get_json()
+        id_token_str = data.get('idToken')
+        
+        if not id_token_str:
+            return jsonify({'message': 'ID token is required'}), 400
+        
+        # Verify the Google ID token
+        try:
+            idinfo = id_token.verify_oauth2_token(
+                id_token_str, 
+                google_requests.Request(), 
+                GOOGLE_CLIENT_ID
+            )
+            
+            # Get user info from Google
+            google_user_id = idinfo['sub']
+            email = idinfo['email']
+            name = idinfo.get('name', '')
+            picture = idinfo.get('picture', '')
+            
+        except ValueError as e:
+            return jsonify({'message': 'Invalid Google token'}), 401
+        
+        # Check if user exists
+        user = users.find_one({'email': email})
+        
+        if not user:
+            # Create new user
+            user = {
+                'username': name,
+                'email': email,
+                'google_id': google_user_id,
+                'profile_picture': picture,
+                'auth_provider': 'google',
+                'created_at': datetime.datetime.utcnow()
+            }
+            users.insert_one(user)
+        else:
+            # Update existing user with Google info if not already set
+            if not user.get('google_id'):
+                users.update_one(
+                    {'email': email},
+                    {
+                        '$set': {
+                            'google_id': google_user_id,
+                            'profile_picture': picture,
+                            'auth_provider': 'google'
+                        }
+                    }
+                )
+        
+        # Generate JWT token
+        token = jwt.encode({
+            'email': email,
+            'exp': datetime.datetime.utcnow() + datetime.timedelta(hours=24)
+        }, app.config['SECRET_KEY'], algorithm="HS256")
+        
+        return jsonify({
+            'token': token,
+            'username': name,
+            'email': email,
+            'profile_picture': picture
+        }), 200
+        
+    except Exception as e:
+        print(f"Google auth error: {str(e)}")
+        return jsonify({'message': 'Google authentication failed'}), 500
+
+@app.route('/auth/google/web', methods=['POST'])
+def google_auth_web():
+    """Alternative endpoint for web-based Google Sign-In"""
+    try:
+        data = request.get_json()
+        access_token = data.get('access_token')
+        
+        if not access_token:
+            return jsonify({'message': 'Access token is required'}), 400
+        
+        # Verify token with Google
+        response = requests.get(
+            f'https://www.googleapis.com/oauth2/v1/userinfo?access_token={access_token}'
+        )
+        
+        if response.status_code != 200:
+            return jsonify({'message': 'Invalid Google token'}), 401
+        
+        user_info = response.json()
+        email = user_info.get('email')
+        name = user_info.get('name', '')
+        picture = user_info.get('picture', '')
+        google_id = user_info.get('id')
+        
+        # Check if user exists
+        user = users.find_one({'email': email})
+        
+        if not user:
+            # Create new user
+            user = {
+                'username': name,
+                'email': email,
+                'google_id': google_id,
+                'profile_picture': picture,
+                'auth_provider': 'google',
+                'created_at': datetime.datetime.utcnow()
+            }
+            users.insert_one(user)
+        
+        # Generate JWT token
+        token = jwt.encode({
+            'email': email,
+            'exp': datetime.datetime.utcnow() + datetime.timedelta(hours=24)
+        }, app.config['SECRET_KEY'], algorithm="HS256")
+        
+        return jsonify({
+            'token': token,
+            'username': name,
+            'email': email,
+            'profile_picture': picture
+        }), 200
+        
+    except Exception as e:
+        print(f"Google web auth error: {str(e)}")
+        return jsonify({'message': 'Google authentication failed'}), 500
 
 @app.route('/register', methods=['POST'])
 def register():
