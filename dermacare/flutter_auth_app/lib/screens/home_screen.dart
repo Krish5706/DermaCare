@@ -1,6 +1,20 @@
+
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/auth_provider.dart';
+
+// Place this helper at the bottom of this file or in a shared utils file:
+Future<bool> navigateToHome(BuildContext context) async {
+  Navigator.pushReplacementNamed(context, '/home');
+  return false;
+}
+
+// Usage in scan, history, and skin tips pages:
+// Wrap your Scaffold with WillPopScope:
+// WillPopScope(
+//   onWillPop: () => navigateToHome(context),
+//   child: Scaffold(...),
+// );
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -13,19 +27,24 @@ class _HomeScreenState extends State<HomeScreen> {
   int _selectedIndex = 0;
 
   void _onItemTapped(int index) {
+    if (_selectedIndex == index) return;
     setState(() {
       _selectedIndex = index;
     });
-    
+
     switch (index) {
       case 0:
         // Already on home
+        Navigator.pushReplacementNamed(context, '/home');
         break;
       case 1:
-        Navigator.pushNamed(context, '/skin-analysis');
+        Navigator.pushReplacementNamed(context, '/skin-analysis');
         break;
       case 2:
-        Navigator.pushNamed(context, '/history');
+        Navigator.pushReplacementNamed(context, '/history');
+        break;
+      case 3:
+        Navigator.pushReplacementNamed(context, '/skinTips');
         break;
     }
   }
@@ -34,34 +53,18 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget build(BuildContext context) {
     final auth = Provider.of<AuthProvider>(context);
     final theme = Theme.of(context);
-    
+
     return Scaffold(
       backgroundColor: theme.colorScheme.surface,
       appBar: PreferredSize(
-        preferredSize: const Size.fromHeight(80),
+        preferredSize: const Size.fromHeight(60),
         child: AppBar(
-          backgroundColor: Colors.transparent,
+          backgroundColor: theme.colorScheme.surfaceContainerHighest,
           elevation: 0,
           automaticallyImplyLeading: false,
           toolbarHeight: 80,
           flexibleSpace: Container(
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-                colors: [
-                  theme.colorScheme.primary,
-                  theme.colorScheme.secondary,
-                ],
-              ),
-              boxShadow: [
-                BoxShadow(
-                  color: theme.colorScheme.shadow.withValues(alpha: 0.2),
-                  blurRadius: 10,
-                  offset: const Offset(0, 2),
-                ),
-              ],
-            ),
+            color: theme.colorScheme.surfaceContainerHighest,
             child: SafeArea(
               child: Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
@@ -76,7 +79,7 @@ class _HomeScreenState extends State<HomeScreen> {
                           width: 40,
                           height: 40,
                           decoration: BoxDecoration(
-                            color: theme.colorScheme.onPrimary,
+                            color: Colors.lightBlue,
                             borderRadius: BorderRadius.circular(12),
                             boxShadow: [
                               BoxShadow(
@@ -88,7 +91,7 @@ class _HomeScreenState extends State<HomeScreen> {
                           ),
                           child: Icon(
                             Icons.local_hospital_rounded,
-                            color: theme.colorScheme.primary,
+                            color: Colors.white,
                             size: 24,
                           ),
                         ),
@@ -96,7 +99,7 @@ class _HomeScreenState extends State<HomeScreen> {
                         Text(
                           'DermaCare',
                           style: TextStyle(
-                            color: theme.colorScheme.onPrimary,
+                            color: Colors.lightBlue,
                             fontSize: 26,
                             fontWeight: FontWeight.w700,
                             letterSpacing: -0.5,
@@ -105,23 +108,13 @@ class _HomeScreenState extends State<HomeScreen> {
                       ],
                     ),
                     // Settings icon
-                    Container(
-                      decoration: BoxDecoration(
-                        color: theme.colorScheme.onPrimary.withValues(alpha: 0.15),
-                        borderRadius: BorderRadius.circular(16),
-                        border: Border.all(
-                          color: theme.colorScheme.onPrimary.withValues(alpha: 0.2),
-                          width: 1,
-                        ),
+                    IconButton(
+                      icon: Icon(
+                        Icons.settings_outlined,
+                        color: theme.colorScheme.primary,
+                        size: 24,
                       ),
-                      child: IconButton(
-                        icon: Icon(
-                          Icons.settings_outlined,
-                          color: theme.colorScheme.onPrimary,
-                          size: 24,
-                        ),
-                        onPressed: () => Navigator.pushNamed(context, '/settings'),
-                      ),
+                      onPressed: () => Navigator.pushNamed(context, '/settings'),
                     ),
                   ],
                 ),
@@ -137,17 +130,17 @@ class _HomeScreenState extends State<HomeScreen> {
           children: [
             // Welcome Section
             _buildWelcomeSection(auth, theme),
-            
+
             const SizedBox(height: 24),
-            
+
             // Quick Actions Section
             _buildQuickActionsSection(theme),
-            
+
             const SizedBox(height: 16),
-            
+
             // Quick Actions Grid
             _buildQuickActionsGrid(),
-            
+
             const SizedBox(height: 80), // Bottom padding for navigation
           ],
         ),
@@ -172,6 +165,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 _buildNavItem(Icons.home_rounded, 'Home', 0),
                 _buildNavItem(Icons.camera_alt_rounded, 'Scan', 1),
                 _buildNavItem(Icons.history_rounded, 'History', 2),
+                _buildNavItem(Icons.face_retouching_natural, 'Skin Tips', 3),
               ],
             ),
           ),
@@ -182,7 +176,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Widget _buildWelcomeSection(AuthProvider auth, ThemeData theme) {
     final greetingText = _getGreeting();
-    
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -239,7 +233,7 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget _buildQuickActionsGrid() {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
-    
+
     final cards = [
       {
         'title': 'Skin Analysis',
@@ -262,6 +256,13 @@ class _HomeScreenState extends State<HomeScreen> {
         'color': colorScheme.tertiary,
         'action': () => Navigator.pushNamed(context, '/history'),
       },
+      {
+        'title': 'Skin Tips',
+        'subtitle': 'Get healthy skin advice',
+        'icon': Icons.face_retouching_natural, 
+        'color': colorScheme.secondaryContainer, 
+        'action': () => Navigator.pushNamed(context, '/skinTips'),
+      },
     ];
 
     return GridView.builder(
@@ -269,9 +270,9 @@ class _HomeScreenState extends State<HomeScreen> {
       physics: const NeverScrollableScrollPhysics(),
       gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
         crossAxisCount: 2,
-        mainAxisSpacing: 12,
-        crossAxisSpacing: 12,
-        childAspectRatio: 1.2,
+        mainAxisSpacing: 14,
+        crossAxisSpacing: 14,
+        childAspectRatio: 0.90, // Taller cards for better icon visibility
       ),
       itemCount: cards.length,
       itemBuilder: (context, index) {
@@ -286,18 +287,19 @@ class _HomeScreenState extends State<HomeScreen> {
       },
     );
   }
-
-  Widget _buildModernActionCard(String title, String subtitle, IconData icon, 
+  
+  Widget _buildModernActionCard(String title, String subtitle, IconData icon,
       Color color, VoidCallback onTap) {
     final theme = Theme.of(context);
-    
+
+    final colorScheme = theme.colorScheme;
     return Card(
       elevation: 0,
-      color: theme.colorScheme.surfaceContainerLow,
+      color: colorScheme.surfaceContainerLow,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(16),
         side: BorderSide(
-          color: theme.colorScheme.outlineVariant,
+          color: colorScheme.outlineVariant,
           width: 1,
         ),
       ),
@@ -305,41 +307,46 @@ class _HomeScreenState extends State<HomeScreen> {
         onTap: onTap,
         borderRadius: BorderRadius.circular(16),
         child: Padding(
-          padding: const EdgeInsets.all(16),
+          padding: const EdgeInsets.symmetric(vertical: 22, horizontal: 16),
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
+            crossAxisAlignment: CrossAxisAlignment.center,
             children: [
-              Container(
-                width: 38,
-                height: 38,
-                decoration: BoxDecoration(
-                  color: color.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Icon(
-                  icon,
-                  color: color,
-                  size: 24,
+              Center(
+                child: Container(
+                  width: 52,
+                  height: 52,
+                  decoration: BoxDecoration(
+                    color: color,
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                  child: Center(
+                    child: Icon(
+                      icon,
+                      color: colorScheme.onPrimary,
+                      size: 32,
+                    ),
+                  ),
                 ),
               ),
-              const SizedBox(height: 12),
+              const SizedBox(height: 18),
               Text(
                 title,
                 style: theme.textTheme.titleSmall?.copyWith(
-                  fontSize: 14,
+                  fontSize: 15,
                   fontWeight: FontWeight.w600,
-                  color: theme.colorScheme.onSurface,
+                  color: colorScheme.onSurface,
                 ),
                 textAlign: TextAlign.center,
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
               ),
-              const SizedBox(height: 6),
+              const SizedBox(height: 8),
               Text(
                 subtitle,
                 style: theme.textTheme.bodySmall?.copyWith(
-                  fontSize: 12,
-                  color: theme.colorScheme.onSurfaceVariant,
+                  fontSize: 13,
+                  color: colorScheme.onSurfaceVariant,
                   height: 1.2,
                 ),
                 textAlign: TextAlign.center,
@@ -367,14 +374,16 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget _buildNavItem(IconData icon, String label, int index) {
     final theme = Theme.of(context);
     final isSelected = _selectedIndex == index;
-    
+
     return GestureDetector(
       onTap: () => _onItemTapped(index),
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 200),
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
         decoration: BoxDecoration(
-          color: isSelected ? theme.colorScheme.primaryContainer : Colors.transparent,
+          color: isSelected
+              ? theme.colorScheme.primaryContainer
+              : Colors.transparent,
           borderRadius: BorderRadius.circular(16),
         ),
         child: Column(
@@ -382,14 +391,18 @@ class _HomeScreenState extends State<HomeScreen> {
           children: [
             Icon(
               icon,
-              color: isSelected ? theme.colorScheme.onPrimaryContainer : theme.colorScheme.onSurfaceVariant,
+              color: isSelected
+                  ? theme.colorScheme.onPrimaryContainer
+                  : theme.colorScheme.onSurfaceVariant,
               size: 24,
             ),
             const SizedBox(height: 4),
             Text(
               label,
               style: TextStyle(
-                color: isSelected ? theme.colorScheme.onPrimaryContainer : theme.colorScheme.onSurfaceVariant,
+                color: isSelected
+                    ? theme.colorScheme.onPrimaryContainer
+                    : theme.colorScheme.onSurfaceVariant,
                 fontSize: 12,
                 fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
               ),

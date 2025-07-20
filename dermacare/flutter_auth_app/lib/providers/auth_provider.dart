@@ -69,17 +69,17 @@ class AuthProvider extends ChangeNotifier {
   // Dynamically set backend URL for different platforms
   static String get _baseUrl {
     if (kIsWeb) {
-      // Use localhost for web
-      return 'http://172.27.130.169:5000';
+      // Use localhost for web 
+      return 'http://10.168.183.153:5000';
     } else if (Platform.isAndroid) {
       // Use 10.0.2.2 for Android emulator (maps to host's localhost)
-      return 'http://172.27.130.169:5000';
+      return 'http://10.168.183.153:5000';
     } else if (Platform.isIOS) {
       // Use localhost for iOS simulator
-      return 'http://172.27.130.169:5000';
+      return 'http://10.168.183.153:5000';
     } else {
       // Default fallback to localhost
-      return 'http://172.27.130.169:5000';
+      return 'http://10.168.183.153:5000';
     }
   }
 

@@ -29,51 +29,54 @@ class _SettingsScreenState extends State<SettingsScreen> {
   Future<void> _loadPreferences() async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
     final auth = Provider.of<AuthProvider>(context, listen: false);
-    
+
     String? savedImagePath = prefs.getString('profile_image_path');
-    
+
     // Verify if the saved image still exists
     if (savedImagePath != null && !File(savedImagePath).existsSync()) {
-      // If the file doesn't exist, remove the invalid path
       await prefs.remove('profile_image_path');
       savedImagePath = null;
     }
-    
+
+    ThemeMode themeMode = auth.themeMode;
+    String selectedTheme;
+    bool darkModeEnabled;
+    switch (themeMode) {
+      case ThemeMode.light:
+        selectedTheme = 'Light';
+        darkModeEnabled = false;
+        break;
+      case ThemeMode.dark:
+        selectedTheme = 'Dark';
+        darkModeEnabled = true;
+        break;
+      case ThemeMode.system:
+        selectedTheme = 'System Default';
+        final brightness = MediaQuery.of(context).platformBrightness;
+        darkModeEnabled = brightness == Brightness.dark;
+        break;
+    }
+
     setState(() {
       _autoSaveEnabled = prefs.getBool('auto_save_enabled') ?? true;
       _selectedLanguage = prefs.getString('selected_language') ?? 'English';
       _profileImagePath = savedImagePath;
-      
-      // Get theme from AuthProvider
-      switch (auth.themeMode) {
-        case ThemeMode.light:
-          _selectedTheme = 'Light';
-          _darkModeEnabled = false;
-          break;
-        case ThemeMode.dark:
-          _selectedTheme = 'Dark';
-          _darkModeEnabled = true;
-          break;
-        case ThemeMode.system:
-          _selectedTheme = 'System Default';
-          final brightness = MediaQuery.of(context).platformBrightness;
-          _darkModeEnabled = brightness == Brightness.dark;
-          break;
-      }
+      _selectedTheme = selectedTheme;
+      _darkModeEnabled = darkModeEnabled;
     });
   }
 
   Future<void> _savePreferences() async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
     final auth = Provider.of<AuthProvider>(context, listen: false);
-    
+
     await prefs.setBool('auto_save_enabled', _autoSaveEnabled);
     await prefs.setString('selected_language', _selectedLanguage);
     if (_profileImagePath != null) {
       await prefs.setString('profile_image_path', _profileImagePath!);
     }
-    
-    // Update theme through AuthProvider
+
+    // Update theme through AuthProvider and sync _selectedTheme
     ThemeMode themeMode;
     switch (_selectedTheme) {
       case 'Light':
@@ -87,8 +90,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
         themeMode = ThemeMode.system;
         break;
     }
-    
+
     await auth.setTheme(themeMode);
+    // After setting theme, update _selectedTheme and _darkModeEnabled to match
+    setState(() {
+      _selectedTheme = _selectedTheme;
+      _darkModeEnabled = themeMode == ThemeMode.dark || (themeMode == ThemeMode.system && MediaQuery.of(context).platformBrightness == Brightness.dark);
+    });
   }
 
   Future<void> _removeProfileImage() async {
@@ -212,233 +220,194 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final screenWidth = constraints.maxWidth;
-        final isTablet = screenWidth > 600;
-        final isDesktop = screenWidth > 1200;
-        
-        return Scaffold(
-          backgroundColor: const Color(0xFFF8F9FA),
-          appBar: PreferredSize(
-            preferredSize: const Size.fromHeight(80),
-            child: AppBar(
-              backgroundColor: Colors.transparent,
-              elevation: 0,
-              automaticallyImplyLeading: false,
-              toolbarHeight: 80,
-              flexibleSpace: Container(
-                decoration: const BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                    colors: [
-                      Color(0xFF4285F4),
-                      Color(0xFF34A853),
-                    ],
-                  ),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black26,
-                      blurRadius: 10,
-                      offset: Offset(0, 2),
-                    ),
-                  ],
-                ),
-                child: SafeArea(
-                  child: Padding(
-                    padding: EdgeInsets.symmetric(
-                      horizontal: isDesktop ? 40 : (isTablet ? 30 : 20),
-                      vertical: 12,
-                    ),
-                    child: Row(
-                      children: [
-                        Container(
-                          decoration: BoxDecoration(
-                            color: Colors.white.withOpacity(0.15),
-                            borderRadius: BorderRadius.circular(16),
-                            border: Border.all(
-                              color: Colors.white.withOpacity(0.2),
-                              width: 1,
-                            ),
-                          ),
-                          child: IconButton(
-                            icon: Icon(
-                              Icons.arrow_back_ios,
-                              color: Colors.white,
-                              size: isDesktop ? 24 : (isTablet ? 22 : 20),
-                            ),
-                            onPressed: () => Navigator.pushReplacementNamed(context, '/home'),
+    // Listen to AuthProvider so theme changes trigger rebuild
+    context.watch<AuthProvider>();
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+    final textTheme = theme.textTheme;
+    return Scaffold(
+      backgroundColor: theme.scaffoldBackgroundColor,
+      appBar: PreferredSize(
+        preferredSize: const Size.fromHeight(60),
+        child: AppBar(
+          backgroundColor: colorScheme.surfaceContainerHighest,
+          elevation: 0,
+          automaticallyImplyLeading: false,
+          toolbarHeight: 80,
+          flexibleSpace: Container(
+            decoration: BoxDecoration(
+              color: colorScheme.surfaceContainerHighest,
+            ),
+            child: SafeArea(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.start,
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: [
+                    GestureDetector(
+                      behavior: HitTestBehavior.opaque,
+                      onTap: () => Navigator.pushReplacementNamed(context, '/home'),
+                      child: SizedBox(
+                        height: 40,
+                        width: 40,
+                        child: Center(
+                          child: Icon(
+                            Icons.arrow_back,
+                            color: colorScheme.onSurface,
+                            size: 28,
                           ),
                         ),
-                        SizedBox(width: isDesktop ? 20 : (isTablet ? 18 : 16)),
-                        Text(
+                      ),
+                    ),
+                    const SizedBox(width: 16),
+                    Expanded(
+                      child: Align(
+                        alignment: Alignment.centerLeft,
+                        child: Text(
                           'Settings',
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontSize: isDesktop ? 30 : (isTablet ? 28 : 26),
+                          style: textTheme.headlineSmall?.copyWith(
+                            color: colorScheme.onSurface,
+                            fontSize: 26,
+                            fontWeight: FontWeight.w700,
+                            letterSpacing: -0.5,
+                          ) ?? const TextStyle(
+                            color: Colors.black,
+                            fontSize: 26,
                             fontWeight: FontWeight.w700,
                             letterSpacing: -0.5,
                           ),
                         ),
-                      ],
+                      ),
                     ),
-                  ),
-                ),
-              ),
-            ),
-          ),
-          body: Center(
-            child: ConstrainedBox(
-              constraints: BoxConstraints(
-                maxWidth: isDesktop ? 800 : (isTablet ? 600 : double.infinity),
-              ),
-              child: SingleChildScrollView(
-                padding: EdgeInsets.all(isDesktop ? 40.0 : (isTablet ? 30.0 : 20.0)),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    // Profile Section
-                    _buildSectionHeader('Profile'),
-                    _buildProfileCard(),
-
-                    SizedBox(height: isDesktop ? 32 : (isTablet ? 28 : 24)),
-                    _buildSectionHeader('General'),
-                    _buildSettingCard(
-                      icon: Icons.language,
-                      title: 'Language',
-                      subtitle: _selectedLanguage,
-                      onTap: () => _showLanguageDialog(),
-                    ),
-                    _buildSettingCard(
-                      icon: Icons.palette,
-                      title: 'Theme',
-                      subtitle: _selectedTheme,
-                      onTap: () => _showThemeDialog(),
-                    ),
-
-                    SizedBox(height: isDesktop ? 32 : (isTablet ? 28 : 24)),
-                    _buildSectionHeader('App Preferences'),
-                    _buildSwitchCard(
-                      icon: Icons.dark_mode,
-                      title: 'Dark Mode',
-                      subtitle: 'Switch to dark theme',
-                      value: _darkModeEnabled,
-                      onChanged: _selectedTheme != 'System Default' ? (value) async {
-                        final auth = Provider.of<AuthProvider>(context, listen: false);
-                        setState(() {
-                          _darkModeEnabled = value;
-                          _selectedTheme = value ? 'Dark' : 'Light';
-                        });
-                        await auth.setTheme(value ? ThemeMode.dark : ThemeMode.light);
-                        await _savePreferences();
-                      } : null,
-                      enabled: _selectedTheme != 'System Default',
-                    ),
-                    _buildSwitchCard(
-                      icon: Icons.save,
-                      title: 'Auto Save',
-                      subtitle: 'Automatically save app data',
-                      value: _autoSaveEnabled,
-                      onChanged: (value) {
-                        setState(() {
-                          _autoSaveEnabled = value;
-                        });
-                        _savePreferences();
-                      },
-                    ),
-
-                    SizedBox(height: isDesktop ? 32 : (isTablet ? 28 : 24)),
-                    _buildSectionHeader('Data & Privacy'),
-                    _buildSettingCard(
-                      icon: Icons.history,
-                      title: 'Clear App Data',
-                      subtitle: 'Remove all locally stored data',
-                      onTap: () => _showClearDataDialog(),
-                    ),
-                    _buildSettingCard(
-                      icon: Icons.security,
-                      title: 'Privacy Policy',
-                      subtitle: 'Read our privacy policy',
-                      onTap: () {
-                        _showInfoDialog(
-                          'Privacy Policy',
-                          'Your privacy is important to us. This app processes data securely and does not share personal information without consent.',
-                        );
-                      },
-                    ),
-                    _buildSettingCard(
-                      icon: Icons.description,
-                      title: 'Terms of Service',
-                      subtitle: 'View terms and conditions',
-                      onTap: () {
-                        _showInfoDialog(
-                          'Terms of Service',
-                          'By using this app, you agree to our terms and conditions. Please read carefully and contact us if you have any questions.',
-                        );
-                      },
-                    ),
-
-                    SizedBox(height: isDesktop ? 32 : (isTablet ? 28 : 24)),
-                    _buildSectionHeader('Support'),
-                    _buildSettingCard(
-                      icon: Icons.help,
-                      title: 'Help & FAQ',
-                      subtitle: 'Get help and find answers',
-                      onTap: () {
-                        _showInfoDialog(
-                          'Help & FAQ',
-                          'For support, please contact us at support@dermacare.com or visit our FAQ section on the website.',
-                        );
-                      },
-                    ),
-                    _buildSettingCard(
-                      icon: Icons.feedback,
-                      title: 'Send Feedback',
-                      subtitle: 'Share your thoughts with us',
-                      onTap: () {
-                        _showFeedbackDialog();
-                      },
-                    ),
-                    _buildSettingCard(
-                      icon: Icons.info,
-                      title: 'About',
-                      subtitle: 'App version and information',
-                      onTap: () {
-                        _showInfoDialog(
-                          'About DermaCare',
-                          'DermaCare v1.0.0\n\nA healthcare mobile application built with Flutter.\n\nDeveloped with care for your health and privacy.',
-                        );
-                      },
-                    ),
-
-                    SizedBox(height: isDesktop ? 32 : (isTablet ? 28 : 24)),
-                    _buildSectionHeader('Account'),
-                    _buildSettingCard(
-                      icon: Icons.logout,
-                      title: 'Logout',
-                      subtitle: 'Sign out of your account',
-                      onTap: () => _showLogoutDialog(),
-                      textColor: Colors.red,
-                    ),
-
-                    SizedBox(height: isDesktop ? 60 : (isTablet ? 50 : 40)),
                   ],
                 ),
               ),
             ),
           ),
-        );
-      },
+        ),
+      ),
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.all(20.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            _buildSectionHeader('Profile'),
+            _buildProfileCard(),
+            const SizedBox(height: 24),
+            _buildSectionHeader('General'),
+            _buildSettingCard(
+              icon: Icons.language,
+              title: 'Language',
+              subtitle: _selectedLanguage,
+              onTap: () => _showLanguageDialog(),
+            ),
+            _buildSettingCard(
+              icon: Icons.palette,
+              title: 'Theme',
+              subtitle: _selectedTheme,
+              onTap: () => _showThemeDialog(),
+            ),
+            const SizedBox(height: 24),
+            _buildSectionHeader('App Preferences'),
+            _buildSwitchCard(
+              icon: Icons.save,
+              title: 'Auto Save',
+              subtitle: 'Automatically save app data',
+              value: _autoSaveEnabled,
+              onChanged: (value) {
+                setState(() {
+                  _autoSaveEnabled = value;
+                });
+                _savePreferences();
+              },
+            ),
+            const SizedBox(height: 24),
+            _buildSectionHeader('Data & Privacy'),
+            _buildSettingCard(
+              icon: Icons.history,
+              title: 'Clear App Data',
+              subtitle: 'Remove all locally stored data',
+              onTap: () => _showClearDataDialog(),
+            ),
+            _buildSettingCard(
+              icon: Icons.security,
+              title: 'Privacy Policy',
+              subtitle: 'Read our privacy policy',
+              onTap: () {
+                _showInfoDialog(
+                  'Privacy Policy',
+                  'Your privacy is important to us. This app processes data securely and does not share personal information without consent.',
+                );
+              },
+            ),
+            _buildSettingCard(
+              icon: Icons.description,
+              title: 'Terms of Service',
+              subtitle: 'View terms and conditions',
+              onTap: () {
+                _showInfoDialog(
+                  'Terms of Service',
+                  'By using this app, you agree to our terms and conditions. Please read carefully and contact us if you have any questions.',
+                );
+              },
+            ),
+            const SizedBox(height: 24),
+            _buildSectionHeader('Support'),
+            _buildSettingCard(
+              icon: Icons.help,
+              title: 'Help & FAQ',
+              subtitle: 'Get help and find answers',
+              onTap: () {
+                _showInfoDialog(
+                  'Help & FAQ',
+                  'For support, please contact us at support@dermacare.com or visit our FAQ section on the website.',
+                );
+              },
+            ),
+            _buildSettingCard(
+              icon: Icons.feedback,
+              title: 'Send Feedback',
+              subtitle: 'Share your thoughts with us',
+              onTap: () {
+                _showFeedbackDialog();
+              },
+            ),
+            _buildSettingCard(
+              icon: Icons.info,
+              title: 'About',
+              subtitle: 'App version and information',
+              onTap: () {
+                _showInfoDialog(
+                  'About DermaCare',
+                  'DermaCare v1.0.0\n\nA healthcare mobile application built with Flutter.\n\nDeveloped with care for your health and privacy.',
+                );
+              },
+            ),
+            const SizedBox(height: 24),
+            _buildSectionHeader('Account'),
+            _buildSettingCard(
+              icon: Icons.logout,
+              title: 'Logout',
+              subtitle: 'Sign out of your account',
+              onTap: () => _showLogoutDialog(),
+              textColor: Colors.red,
+            ),
+            const SizedBox(height: 40),
+          ],
+        ),
+      ),
     );
   }
 
   Widget _buildProfileCard() {
     final auth = Provider.of<AuthProvider>(context);
-    
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+    final textTheme = theme.textTheme;
     return Card(
       elevation: 0,
-      color: Colors.grey[50],
+      color: theme.cardColor,
       margin: const EdgeInsets.only(bottom: 8),
       child: Padding(
         padding: const EdgeInsets.all(16),
@@ -453,7 +422,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     height: 80,
                     decoration: BoxDecoration(
                       shape: BoxShape.circle,
-                      color: Colors.blue[100],
+                      color: colorScheme.primary.withAlpha((0.15 * 255).toInt()),
                     ),
                     child: ClipOval(
                       child: _profileImagePath != null && File(_profileImagePath!).existsSync()
@@ -463,10 +432,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
                               width: 80,
                               height: 80,
                               errorBuilder: (context, error, stackTrace) {
-                                return Icon(Icons.person, size: 40, color: Colors.blue[700]);
+                                return Icon(Icons.person, size: 40, color: colorScheme.primary);
                               },
                             )
-                          : Icon(Icons.person, size: 40, color: Colors.blue[700]),
+                          : Icon(Icons.person, size: 40, color: colorScheme.primary),
                     ),
                   ),
                   Positioned(
@@ -476,14 +445,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       width: 24,
                       height: 24,
                       decoration: BoxDecoration(
-                        color: Colors.blue[700],
+                        color: colorScheme.primary,
                         shape: BoxShape.circle,
-                        border: Border.all(color: Colors.white, width: 2),
+                        border: Border.all(color: colorScheme.surface, width: 2),
                       ),
-                      child: const Icon(
+                      child: Icon(
                         Icons.camera_alt,
                         size: 12,
-                        color: Colors.white,
+                        color: colorScheme.onPrimary,
                       ),
                     ),
                   ),
@@ -497,28 +466,18 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 children: [
                   Text(
                     auth.username ?? 'User',
-                    style: const TextStyle(
-                      fontSize: 20,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.black87,
-                    ),
+                    style: textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold) ?? TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: colorScheme.onSurface),
                   ),
                   const SizedBox(height: 4),
                   Text(
                     auth.email ?? 'user@example.com',
-                    style: TextStyle(
-                      fontSize: 14,
-                      color: Colors.grey[600],
-                    ),
+                    style: textTheme.bodySmall?.copyWith(color: colorScheme.onSurface.withAlpha((0.7 * 255).toInt())) ?? TextStyle(fontSize: 14, color: colorScheme.onSurface.withAlpha((0.7 * 255).toInt())),
                   ),
                   if (auth.phone != null && auth.phone!.isNotEmpty) ...[
                     const SizedBox(height: 2),
                     Text(
                       auth.phone!,
-                      style: TextStyle(
-                        fontSize: 14,
-                        color: Colors.grey[600],
-                      ),
+                      style: textTheme.bodySmall?.copyWith(color: colorScheme.onSurface.withAlpha((0.7 * 255).toInt())) ?? TextStyle(fontSize: 14, color: colorScheme.onSurface.withAlpha((0.7 * 255).toInt())),
                     ),
                   ],
                   const SizedBox(height: 8),
@@ -526,11 +485,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     onTap: () => _showEditProfileDialog(),
                     child: Text(
                       'Edit Profile',
-                      style: TextStyle(
-                        fontSize: 14,
-                        color: Colors.blue[700],
+                      style: textTheme.bodySmall?.copyWith(
+                        color: colorScheme.primary,
                         fontWeight: FontWeight.w600,
-                      ),
+                      ) ?? TextStyle(fontSize: 14, color: colorScheme.primary, fontWeight: FontWeight.w600),
                     ),
                   ),
                 ],
@@ -538,7 +496,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
             ),
             IconButton(
               onPressed: _showImageOptions,
-              icon: Icon(Icons.camera_alt, color: Colors.grey[600]),
+              icon: Icon(Icons.camera_alt, color: colorScheme.onSurface.withAlpha((0.7 * 255).toInt())),
             ),
           ],
         ),
@@ -547,15 +505,18 @@ class _SettingsScreenState extends State<SettingsScreen> {
   }
 
   Widget _buildSectionHeader(String title) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+    final textTheme = theme.textTheme;
     return Padding(
       padding: const EdgeInsets.only(bottom: 12, top: 8),
       child: Text(
         title,
-        style: TextStyle(
-          fontSize: 18,
+        style: textTheme.titleMedium?.copyWith(
           fontWeight: FontWeight.bold,
-          color: Colors.blue[700],
-        ),
+          color: colorScheme.primary,
+          fontSize: 18,
+        ) ?? TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: colorScheme.primary),
       ),
     );
   }
@@ -567,36 +528,43 @@ class _SettingsScreenState extends State<SettingsScreen> {
     required VoidCallback onTap,
     Color? textColor,
   }) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+    final textTheme = theme.textTheme;
+    final isDestructive = textColor == Colors.red;
     return Card(
       elevation: 0,
-      color: Colors.grey[50],
+      color: theme.cardColor,
       margin: const EdgeInsets.only(bottom: 8),
       child: ListTile(
         leading: Container(
           padding: const EdgeInsets.all(8),
           decoration: BoxDecoration(
-            color: textColor == Colors.red ? Colors.red[100] : Colors.blue[100],
+            color: isDestructive
+                ? colorScheme.error.withAlpha((0.15 * 255).toInt())
+                : colorScheme.primary.withAlpha((0.15 * 255).toInt()),
             borderRadius: BorderRadius.circular(8),
           ),
           child: Icon(
             icon,
-            color: textColor == Colors.red ? Colors.red[700] : Colors.blue[700],
+            color: isDestructive ? colorScheme.error : colorScheme.primary,
             size: 20,
           ),
         ),
         title: Text(
           title,
-          style: TextStyle(
-            fontSize: 16,
+          style: textTheme.bodyLarge?.copyWith(
             fontWeight: FontWeight.w600,
-            color: textColor ?? Colors.black87,
-          ),
+            color: isDestructive ? colorScheme.error : colorScheme.onSurface,
+            fontSize: 16,
+          ) ?? TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: isDestructive ? colorScheme.error : colorScheme.onSurface),
         ),
         subtitle: Text(
           subtitle,
-          style: TextStyle(fontSize: 14, color: Colors.grey[600]),
+          style: textTheme.bodySmall?.copyWith(color: colorScheme.onSurface.withAlpha((0.7 * 255).toInt()), fontSize: 14)
+              ?? TextStyle(fontSize: 14, color: colorScheme.onSurface.withAlpha((0.7 * 255).toInt())),
         ),
-        trailing: const Icon(Icons.arrow_forward_ios, size: 16, color: Colors.grey),
+        trailing: Icon(Icons.arrow_forward_ios, size: 16, color: colorScheme.onSurface.withAlpha((0.5 * 255).toInt())),
         onTap: onTap,
       ),
     );
@@ -610,41 +578,44 @@ class _SettingsScreenState extends State<SettingsScreen> {
     required ValueChanged<bool>? onChanged,
     bool enabled = true,
   }) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+    final textTheme = theme.textTheme;
     return Card(
       elevation: 0,
-      color: enabled ? Colors.grey[50] : Colors.grey[100],
+      color: theme.cardColor,
       margin: const EdgeInsets.only(bottom: 8),
       child: SwitchListTile(
         secondary: Container(
           padding: const EdgeInsets.all(8),
           decoration: BoxDecoration(
-            color: enabled ? Colors.blue[100] : Colors.grey[200],
+            color: enabled ? colorScheme.primary.withAlpha((0.15 * 255).toInt()) : colorScheme.surfaceContainerHighest,
             borderRadius: BorderRadius.circular(8),
           ),
           child: Icon(
-            icon, 
-            color: enabled ? Colors.blue[700] : Colors.grey[500], 
-            size: 20
+            icon,
+            color: enabled ? colorScheme.primary : colorScheme.onSurface.withAlpha((0.5 * 255).toInt()),
+            size: 20,
           ),
         ),
         title: Text(
           title,
-          style: TextStyle(
-            fontSize: 16, 
+          style: textTheme.bodyLarge?.copyWith(
             fontWeight: FontWeight.w600,
-            color: enabled ? Colors.black87 : Colors.grey[500],
-          ),
+            color: enabled ? colorScheme.onSurface : colorScheme.onSurface.withAlpha((0.5 * 255).toInt()),
+            fontSize: 16,
+          ) ?? TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: enabled ? colorScheme.onSurface : colorScheme.onSurface.withAlpha((0.5 * 255).toInt())),
         ),
         subtitle: Text(
           subtitle,
-          style: TextStyle(
-            fontSize: 14, 
-            color: enabled ? Colors.grey[600] : Colors.grey[400],
-          ),
+          style: textTheme.bodySmall?.copyWith(
+            color: enabled ? colorScheme.onSurface.withAlpha((0.7 * 255).toInt()) : colorScheme.onSurface.withAlpha((0.4 * 255).toInt()),
+            fontSize: 14,
+          ) ?? TextStyle(fontSize: 14, color: enabled ? colorScheme.onSurface.withAlpha((0.7 * 255).toInt()) : colorScheme.onSurface.withAlpha((0.4 * 255).toInt())),
         ),
         value: value,
         onChanged: enabled ? onChanged : null,
-        activeColor: Colors.blue,
+        activeColor: colorScheme.primary,
       ),
     );
   }
@@ -755,21 +726,24 @@ class _SettingsScreenState extends State<SettingsScreen> {
   }
 
   void _showThemeDialog() {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+    final textTheme = theme.textTheme;
     showDialog(
       context: context,
       builder: (BuildContext context) {
         return AlertDialog(
-          backgroundColor: Colors.white,
+          backgroundColor: DialogTheme.of(context).backgroundColor,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(20),
           ),
-          title: const Text(
+          title: Text(
             'Select Theme',
-            style: TextStyle(
-              fontSize: 20,
+            style: textTheme.titleLarge?.copyWith(
               fontWeight: FontWeight.w600,
-              color: Colors.black87,
-            ),
+              color: colorScheme.onSurface,
+              fontSize: 20,
+            ) ?? const TextStyle(fontSize: 20, fontWeight: FontWeight.w600),
           ),
           content: Column(
             mainAxisSize: MainAxisSize.min,
@@ -777,49 +751,45 @@ class _SettingsScreenState extends State<SettingsScreen> {
               // System Default Option
               Container(
                 decoration: BoxDecoration(
-                  color: const Color(0xFFF8F9FA),
+                  color: colorScheme.surfaceContainerHighest,
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: ListTile(
-                  title: const Text(
+                  title: Text(
                     'System Default',
-                    style: TextStyle(
+                    style: textTheme.bodyLarge?.copyWith(
                       fontWeight: FontWeight.w500,
-                      color: Colors.black87,
-                    ),
+                      color: colorScheme.onSurface,
+                    ) ?? const TextStyle(fontWeight: FontWeight.w500),
                   ),
-                  subtitle: const Text(
+                  subtitle: Text(
                     'Follow device settings',
-                    style: TextStyle(
+                    style: textTheme.bodySmall?.copyWith(
                       fontSize: 12,
-                      color: Colors.grey,
-                    ),
+                      color: colorScheme.onSurface.withAlpha((0.7 * 255).toInt()),
+                    ) ?? const TextStyle(fontSize: 12),
                   ),
                   leading: Container(
                     width: 24,
                     height: 24,
                     decoration: BoxDecoration(
-                      gradient: const LinearGradient(
-                        colors: [Colors.white, Colors.grey],
-                        begin: Alignment.topLeft,
-                        end: Alignment.bottomRight,
-                      ),
+                      color: colorScheme.surface,
                       borderRadius: BorderRadius.circular(12),
                       border: Border.all(
-                        color: _selectedTheme == 'System Default' ? const Color(0xFF4285F4) : Colors.grey[300]!,
+                        color: _selectedTheme == 'System Default' ? colorScheme.primary : colorScheme.outlineVariant,
                         width: 2,
                       ),
                     ),
                     child: _selectedTheme == 'System Default'
-                        ? const Icon(
+                        ? Icon(
                             Icons.check,
                             size: 16,
-                            color: Color(0xFF4285F4),
+                            color: colorScheme.primary,
                           )
-                        : const Icon(
+                        : Icon(
                             Icons.settings,
                             size: 12,
-                            color: Colors.grey,
+                            color: colorScheme.onSurface.withAlpha((0.7 * 255).toInt()),
                           ),
                   ),
                   onTap: () async {
@@ -841,38 +811,38 @@ class _SettingsScreenState extends State<SettingsScreen> {
               // Light Theme Option
               Container(
                 decoration: BoxDecoration(
-                  color: const Color(0xFFF8F9FA),
+                  color: colorScheme.surfaceContainerHighest,
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: ListTile(
-                  title: const Text(
+                  title: Text(
                     'Light Theme',
-                    style: TextStyle(
+                    style: textTheme.bodyLarge?.copyWith(
                       fontWeight: FontWeight.w500,
-                      color: Colors.black87,
-                    ),
+                      color: colorScheme.onSurface,
+                    ) ?? const TextStyle(fontWeight: FontWeight.w500),
                   ),
                   leading: Container(
                     width: 24,
                     height: 24,
                     decoration: BoxDecoration(
-                      color: Colors.white,
+                      color: colorScheme.surface,
                       borderRadius: BorderRadius.circular(12),
                       border: Border.all(
-                        color: _selectedTheme == 'Light' ? const Color(0xFF4285F4) : Colors.grey[300]!,
+                        color: _selectedTheme == 'Light' ? colorScheme.primary : colorScheme.outlineVariant,
                         width: 2,
                       ),
                     ),
                     child: _selectedTheme == 'Light'
-                        ? const Icon(
+                        ? Icon(
                             Icons.check,
                             size: 16,
-                            color: Color(0xFF4285F4),
+                            color: colorScheme.primary,
                           )
-                        : const Icon(
+                        : Icon(
                             Icons.light_mode,
                             size: 12,
-                            color: Colors.orange,
+                            color: colorScheme.primary,
                           ),
                   ),
                   onTap: () async {
@@ -893,38 +863,38 @@ class _SettingsScreenState extends State<SettingsScreen> {
               // Dark Theme Option
               Container(
                 decoration: BoxDecoration(
-                  color: const Color(0xFFF8F9FA),
+                  color: colorScheme.surfaceContainerHighest,
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: ListTile(
-                  title: const Text(
+                  title: Text(
                     'Dark Theme',
-                    style: TextStyle(
+                    style: textTheme.bodyLarge?.copyWith(
                       fontWeight: FontWeight.w500,
-                      color: Colors.black87,
-                    ),
+                      color: colorScheme.onSurface,
+                    ) ?? const TextStyle(fontWeight: FontWeight.w500),
                   ),
                   leading: Container(
                     width: 24,
                     height: 24,
                     decoration: BoxDecoration(
-                      color: Colors.grey[800],
+                      color: colorScheme.surface,
                       borderRadius: BorderRadius.circular(12),
                       border: Border.all(
-                        color: _selectedTheme == 'Dark' ? const Color(0xFF4285F4) : Colors.grey[300]!,
+                        color: _selectedTheme == 'Dark' ? colorScheme.primary : colorScheme.outlineVariant,
                         width: 2,
                       ),
                     ),
                     child: _selectedTheme == 'Dark'
-                        ? const Icon(
+                        ? Icon(
                             Icons.check,
                             size: 16,
-                            color: Color(0xFF4285F4),
+                            color: colorScheme.primary,
                           )
-                        : const Icon(
+                        : Icon(
                             Icons.dark_mode,
                             size: 12,
-                            color: Colors.white,
+                            color: colorScheme.onSurface,
                           ),
                   ),
                   onTap: () async {
@@ -947,14 +917,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
             TextButton(
               onPressed: () => Navigator.pop(context),
               style: TextButton.styleFrom(
-                foregroundColor: const Color(0xFF4285F4),
+                foregroundColor: colorScheme.primary,
                 padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
               ),
-              child: const Text(
+              child: Text(
                 'Cancel',
-                style: TextStyle(
-                  fontWeight: FontWeight.w600,
-                ),
+                style: textTheme.bodyLarge?.copyWith(fontWeight: FontWeight.w600) ?? const TextStyle(fontWeight: FontWeight.w600),
               ),
             ),
           ],

@@ -17,29 +17,31 @@ class SplashScreen extends StatelessWidget {
               const Spacer(flex: 2),
               // Logo
               Container(
-                height: 110,
-                width: 110,
-                decoration: const BoxDecoration(
-                  shape: BoxShape.circle,
-                  gradient: LinearGradient(
-                    colors: [Color(0xFF4F8CFF), Color(0xFF1A3C7C)],
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                  ),
+                width: 80, 
+                height: 80,
+                decoration: BoxDecoration(
+                  color: Colors.blue,
+                  borderRadius:
+                      BorderRadius.circular(20),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withAlpha(25),
+                      blurRadius: 10,
+                      offset: const Offset(0, 4),
+                    ),
+                  ],
                 ),
-                child: Center(
-                  child: Icon(
-                    Icons.favorite_border,
-                    color: Color(0xFF4F8CFF),
-                    size: 60,
-                  ),
+                child: const Icon(
+                  Icons.local_hospital_rounded,
+                  color: Colors.white, 
+                  size: 48, 
                 ),
               ),
               const SizedBox(height: 24),
               Text(
                 'DermaCare',
                 style: theme.textTheme.titleLarge?.copyWith(
-                  color: Color(0xFF1A3C7C),
+                  color: Color.fromARGB(255, 0, 179, 255),
                   fontWeight: FontWeight.bold,
                   fontSize: 28,
                 ),

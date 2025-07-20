@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'dart:io';
 import 'package:provider/provider.dart';
+import 'home_screen.dart';
 import '../providers/auth_provider.dart';
 import '../services/skin_analysis_service.dart';
 import 'analysis_results_screen.dart';
@@ -222,110 +223,109 @@ class _SkinAnalysisScreenState extends State<SkinAnalysisScreen>
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     
-    return Scaffold(
-      backgroundColor: theme.colorScheme.surface,
-      appBar: AppBar(
-        title: Text(
-          'Skin Analysis',
-          style: TextStyle(
-            color: theme.colorScheme.onSurface,
-            fontWeight: FontWeight.w600,
-          ),
-        ),
+    return WillPopScope(
+      onWillPop: () => navigateToHome(context),
+      child: Scaffold(
         backgroundColor: theme.colorScheme.surface,
-        elevation: 0,
-        iconTheme: IconThemeData(color: theme.colorScheme.onSurface),
-      ),
-      body: AnimatedBuilder(
-        animation: _scaleAnimation,
-        builder: (context, child) {
-          return Transform.scale(
-            scale: _scaleAnimation.value,
-            child: Padding(
-              padding: const EdgeInsets.all(20),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  // Header Section
-                  Container(
-                    padding: const EdgeInsets.all(24),
-                    decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                        begin: Alignment.topLeft,
-                        end: Alignment.bottomRight,
-                        colors: [
-                          theme.colorScheme.primaryContainer,
-                          theme.colorScheme.secondaryContainer,
+        appBar: AppBar(
+          title: Text(
+            'Skin Analysis',
+            style: TextStyle(
+              color: theme.colorScheme.onSurface,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          backgroundColor: theme.colorScheme.surface,
+          elevation: 0,
+          iconTheme: IconThemeData(color: theme.colorScheme.onSurface),
+        ),
+        body: AnimatedBuilder(
+          animation: _scaleAnimation,
+          builder: (context, child) {
+            return Transform.scale(
+              scale: _scaleAnimation.value,
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(20, 20, 20, 56),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    // Header Section
+                    Container(
+                      padding: const EdgeInsets.all(24),
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                          colors: [
+                            theme.colorScheme.primaryContainer,
+                            theme.colorScheme.secondaryContainer,
+                          ],
+                        ),
+                        borderRadius: BorderRadius.circular(20),
+                      ),
+                      child: Column(
+                        children: [
+                          Icon(
+                            Icons.psychology_rounded,
+                            size: 48,
+                            color: theme.colorScheme.primary,
+                          ),
+                          const SizedBox(height: 16),
+                          Text(
+                            'AI-Powered Skin Analysis',
+                            style: theme.textTheme.headlineSmall?.copyWith(
+                              fontWeight: FontWeight.w700,
+                              color: theme.colorScheme.onPrimaryContainer,
+                            ),
+                            textAlign: TextAlign.center,
+                          ),
+                          const SizedBox(height: 8),
+                          Text(
+                            'Upload or capture an image for instant skin condition analysis',
+                            style: theme.textTheme.bodyMedium?.copyWith(
+                              color: theme.colorScheme.onPrimaryContainer.withValues(alpha: 0.8),
+                            ),
+                            textAlign: TextAlign.center,
+                          ),
                         ],
                       ),
-                      borderRadius: BorderRadius.circular(20),
                     ),
-                    child: Column(
-                      children: [
-                        Icon(
-                          Icons.psychology_rounded,
-                          size: 48,
-                          color: theme.colorScheme.primary,
-                        ),
-                        const SizedBox(height: 16),
-                        Text(
-                          'AI-Powered Skin Analysis',
-                          style: theme.textTheme.headlineSmall?.copyWith(
-                            fontWeight: FontWeight.w700,
-                            color: theme.colorScheme.onPrimaryContainer,
+                    const SizedBox(height: 32),
+                    // Image Preview Section
+                    Expanded(
+                      child: Container(
+                        decoration: BoxDecoration(
+                          color: theme.colorScheme.surfaceContainerLow,
+                          borderRadius: BorderRadius.circular(20),
+                          border: Border.all(
+                            color: theme.colorScheme.outlineVariant,
+                            width: 2,
+                            style: BorderStyle.solid,
                           ),
-                          textAlign: TextAlign.center,
                         ),
-                        const SizedBox(height: 8),
-                        Text(
-                          'Upload or capture an image for instant skin condition analysis',
-                          style: theme.textTheme.bodyMedium?.copyWith(
-                            color: theme.colorScheme.onPrimaryContainer.withValues(alpha: 0.8),
-                          ),
-                          textAlign: TextAlign.center,
-                        ),
-                      ],
-                    ),
-                  ),
-                  
-                  const SizedBox(height: 32),
-                  
-                  // Image Preview Section
-                  Expanded(
-                    child: Container(
-                      decoration: BoxDecoration(
-                        color: theme.colorScheme.surfaceContainerLow,
-                        borderRadius: BorderRadius.circular(20),
-                        border: Border.all(
-                          color: theme.colorScheme.outlineVariant,
-                          width: 2,
-                          style: BorderStyle.solid,
-                        ),
+                        child: _selectedImage == null
+                            ? _buildPlaceholder()
+                            : _buildImagePreview(),
                       ),
-                      child: _selectedImage == null
-                          ? _buildPlaceholder()
-                          : _buildImagePreview(),
                     ),
-                  ),
-                  
-                  const SizedBox(height: 24),
-                  
-                  // Action Buttons
-                  if (_selectedImage == null)
-                    _buildSelectImageButton()
-                  else
-                    Column(
-                      children: [
-                        _buildAnalyzeButton(),
-                        const SizedBox(height: 12),
-                        _buildSelectDifferentImageButton(),
-                      ],
-                    ),
-                ],
+                    const SizedBox(height: 24),
+                    // Action Buttons
+                    if (_selectedImage == null)
+                      _buildSelectImageButton()
+                    else
+                      Column(
+                        children: [
+                          _buildAnalyzeButton(),
+                          const SizedBox(height: 12),
+                          _buildSelectDifferentImageButton(),
+                        ],
+                      ),
+                  ],
+                ),
               ),
-            ),
-          );
-        },
+            );
+          },
+        ),
       ),
     );
   }
@@ -340,7 +340,7 @@ class _SkinAnalysisScreenState extends State<SkinAnalysisScreen>
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Container(
-              padding: const EdgeInsets.all(24),
+              padding: const EdgeInsets.all(20),
               decoration: BoxDecoration(
                 color: theme.colorScheme.primary.withValues(alpha: 0.1),
                 shape: BoxShape.circle,
@@ -351,7 +351,7 @@ class _SkinAnalysisScreenState extends State<SkinAnalysisScreen>
                 color: theme.colorScheme.primary,
               ),
             ),
-            const SizedBox(height: 24),
+            const SizedBox(height: 20),
             Text(
               'No Image Selected',
               style: theme.textTheme.titleLarge?.copyWith(

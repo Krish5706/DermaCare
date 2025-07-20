@@ -6,7 +6,7 @@
     <uses-permission android:name="android.permission.INTERNET" />
     
     <application
-        android:label="flutter_auth_app"
+        android:label="Derma Care"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher">
         <activity

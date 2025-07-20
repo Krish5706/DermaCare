@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'home_screen.dart';
 import '../providers/auth_provider.dart';
 import '../services/skin_analysis_service.dart';
 import '../models/analysis_result.dart';
@@ -49,37 +50,39 @@ class _HistoryScreenState extends State<HistoryScreen> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    
-    return Scaffold(
-      backgroundColor: theme.colorScheme.surface,
-      appBar: AppBar(
-        title: Text(
-          'Analysis History',
-          style: TextStyle(
-            color: theme.colorScheme.onSurface,
-            fontWeight: FontWeight.w600,
-          ),
-        ),
+    return WillPopScope(
+      onWillPop: () => navigateToHome(context),
+      child: Scaffold(
         backgroundColor: theme.colorScheme.surface,
-        elevation: 0,
-        iconTheme: IconThemeData(color: theme.colorScheme.onSurface),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.refresh_rounded),
-            onPressed: () {
-              setState(() {
-                _isLoading = true;
-              });
-              _loadAnalysisHistory();
-            },
+        appBar: AppBar(
+          title: Text(
+            'Analysis History',
+            style: TextStyle(
+              color: theme.colorScheme.onSurface,
+              fontWeight: FontWeight.w600,
+            ),
           ),
-        ],
+          backgroundColor: theme.colorScheme.surface,
+          elevation: 0,
+          iconTheme: IconThemeData(color: theme.colorScheme.onSurface),
+          actions: [
+            IconButton(
+              icon: const Icon(Icons.refresh_rounded),
+              onPressed: () {
+                setState(() {
+                  _isLoading = true;
+                });
+                _loadAnalysisHistory();
+              },
+            ),
+          ],
+        ),
+        body: _isLoading
+            ? const Center(child: CircularProgressIndicator())
+            : _analysisHistory.isEmpty
+                ? _buildEmptyState()
+                : _buildHistoryList(),
       ),
-      body: _isLoading
-          ? const Center(child: CircularProgressIndicator())
-          : _analysisHistory.isEmpty
-              ? _buildEmptyState()
-              : _buildHistoryList(),
     );
   }
 

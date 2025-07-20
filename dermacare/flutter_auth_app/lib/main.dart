@@ -9,6 +9,7 @@ import 'screens/profile_screen.dart';
 import 'screens/settings_screen.dart';
 import 'screens/skin_analysis_screen.dart';
 import 'screens/history_screen.dart';
+import 'screens/skin_tips.dart';
 
 void main() {
   runApp(const MyApp());
@@ -46,6 +47,7 @@ class MyApp extends StatelessWidget {
               '/settings': (_) => const SettingsScreen(),
               '/skin-analysis': (_) => const SkinAnalysisScreen(),
               '/history': (_) => const HistoryScreen(),
+              '/skinTips': (_) => const SkinTipsPage(),
             },
           );
         },
