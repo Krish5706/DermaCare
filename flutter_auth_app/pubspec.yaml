@@ -1,0 +1,37 @@
+name: flutter_auth_app
+description: A modern Flutter authentication app with Flask backend
+publish_to: 'none'
+version: 1.0.0+1
+environment:
+  sdk: ">=3.0.0 <4.0.0"
+dependencies:
+  flutter:
+    sdk: flutter
+  provider: ^6.0.0
+  http: ^1.5.0
+  flutter_secure_storage: ^9.0.0
+  shared_preferences: ^2.5.3
+  email_validator: ^2.1.17
+  fluttertoast: ^8.2.4
+  image_picker: ^1.2.0
+  path_provider: ^2.1.0
+  flutter_svg: ^2.0.7
+  cupertino_icons: ^1.0.2
+  google_sign_in: ^6.1.5
+  google_sign_in_web: ^0.12.1
+  crypto: ^3.0.3
+  google_generative_ai: ^0.4.6
+  flutter_markdown: ^0.6.18+2
+  intl: ^0.20.2
+  # AI/ML dependencies for skin disease prediction
+  # tflite_flutter: ^0.10.4
+  # image: ^4.1.7
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+flutter:
+  uses-material-design: true
+  assets:
+    - lib/assets/
+    - lib/assets/google.svg
+    - assets/models/

@@ -1,0 +1,16 @@
+Flask
+flask-cors
+flask-pymongo
+PyJWT
+Werkzeug
+Pillow
+numpy
+# torch
+# torchvision
+opencv-python
+albumentations
+joblib
+google-auth
+pymongo
+dnspython
+# C:\Users\vaghe\Downloads\dermacare\backend
